@@ -1,0 +1,23 @@
+authentik:
+  log_level: info
+  secret_key: ""
+
+server:
+  env:
+    - name: AUTHENTIK_COOKIE_DOMAIN
+      value: ".x43.io"
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      traefik.ingress.kubernetes.io/router.tls.certresolver: le
+    hosts:
+      - auth.x43.io
+    tls:
+      - hosts:
+          - auth.x43.io
+
+postgresql:
+  enabled: true

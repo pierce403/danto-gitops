@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meshcentral
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meshcentral
+  template:
+    metadata:
+      labels:
+        app: meshcentral
+    spec:
+      containers:
+        - name: meshcentral
+          image: meshcentral/meshcentral:latest
+          ports:
+            - name: http
+              containerPort: 4430
+          volumeMounts:
+            - name: data
+              mountPath: /opt/meshcentral/meshcentral-data
+            - name: config
+              mountPath: /opt/meshcentral/meshcentral-data/config.json
+              subPath: config.json
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: meshcentral-data
+        - name: config
+          configMap:
+            name: meshcentral-config

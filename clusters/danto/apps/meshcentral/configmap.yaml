@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: meshcentral-config
+data:
+  config.json: |
+    {
+      "settings": {
+        "Cert": "mesh.x43.io",
+        "Port": 4430,
+        "AliasPort": 443,
+        "RedirPort": 0,
+        "TlsOffload": true
+      },
+      "domains": {
+        "": {
+          "certUrl": "https://mesh.x43.io/"
+        }
+      }
+    }

@@ -1,0 +1,37 @@
+ingressClass:
+  enabled: true
+  isDefaultClass: false
+  name: traefik
+
+providers:
+  kubernetesCRD:
+    allowCrossNamespace: true
+    ingressClass: traefik
+  kubernetesIngress:
+    ingressClass: traefik
+
+ports:
+  traefik:
+    expose:
+      default: false
+  web:
+    expose:
+      default: false
+  websecure:
+    asDefault: true
+    expose:
+      default: true
+
+service:
+  type: LoadBalancer
+
+certificatesResolvers:
+  le:
+    acme:
+      email: admin@x43.io
+      storage: /data/acme.json
+      tlsChallenge: true
+
+persistence:
+  enabled: true
+  path: /data

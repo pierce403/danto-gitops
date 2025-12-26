@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-traefik
+  namespace: argocd
+spec:
+  project: platform
+  sources:
+    - repoURL: https://helm.traefik.io/traefik
+      chart: traefik
+      targetRevision: ">=0.0.0"
+      helm:
+        releaseName: traefik
+        valueFiles:
+          - $values/clusters/danto/platform/traefik/values.yaml
+    - repoURL: https://github.com/your-org/danto-gitops
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: traefik
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

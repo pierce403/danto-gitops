@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps-meshcentral
+  namespace: argocd
+spec:
+  project: apps
+  source:
+    repoURL: https://github.com/your-org/danto-gitops
+    targetRevision: main
+    path: clusters/danto/apps/meshcentral
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: meshcentral
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-authentik
+  namespace: argocd
+spec:
+  project: platform
+  sources:
+    - repoURL: https://charts.goauthentik.io
+      chart: authentik
+      targetRevision: ">=0.0.0"
+      helm:
+        releaseName: authentik
+        valueFiles:
+          - $values/clusters/danto/platform/authentik/values.yaml
+    - repoURL: https://github.com/your-org/danto-gitops
+      targetRevision: main
+      ref: values
+      path: clusters/danto/platform/authentik
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: authentik
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
