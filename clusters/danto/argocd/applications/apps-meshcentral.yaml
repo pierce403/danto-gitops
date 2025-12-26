@@ -3,10 +3,12 @@ kind: Application
 metadata:
   name: apps-meshcentral
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   project: apps
   source:
-    repoURL: https://github.com/your-org/danto-gitops
+    repoURL: https://github.com/pierce403/danto-gitops
     targetRevision: main
     path: clusters/danto/apps/meshcentral
   destination:

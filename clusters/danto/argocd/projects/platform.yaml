@@ -6,7 +6,7 @@ metadata:
 spec:
   description: Platform components (ingress/auth/argo)
   sourceRepos:
-    - https://github.com/your-org/danto-gitops
+    - https://github.com/pierce403/danto-gitops
     - https://helm.traefik.io/traefik
     - https://charts.goauthentik.io
   destinations:

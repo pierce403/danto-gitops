@@ -6,7 +6,7 @@ metadata:
 spec:
   description: Stateful services (databases, queues)
   sourceRepos:
-    - https://github.com/your-org/danto-gitops
+    - https://github.com/pierce403/danto-gitops
   destinations:
     - namespace: stateful
       server: https://kubernetes.default.svc

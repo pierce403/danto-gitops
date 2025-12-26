@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: platform-traefik
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: platform
   sources:
@@ -13,7 +15,7 @@ spec:
         releaseName: traefik
         valueFiles:
           - $values/clusters/danto/platform/traefik/values.yaml
-    - repoURL: https://github.com/your-org/danto-gitops
+    - repoURL: https://github.com/pierce403/danto-gitops
       targetRevision: main
       ref: values
   destination:

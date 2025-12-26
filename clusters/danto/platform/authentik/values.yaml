@@ -1,6 +1,21 @@
+global:
+  env:
+    - name: AUTHENTIK_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: authentik-secrets
+          key: secret_key
+    - name: AUTHENTIK_POSTGRESQL__PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: authentik-secrets
+          key: postgresql_password
+
 authentik:
   log_level: info
   secret_key: ""
+  postgresql:
+    password: ""
 
 server:
   env:
@@ -21,3 +36,8 @@ server:
 
 postgresql:
   enabled: true
+  auth:
+    enablePostgresUser: false
+    existingSecret: authentik-postgresql
+    username: authentik
+    database: authentik

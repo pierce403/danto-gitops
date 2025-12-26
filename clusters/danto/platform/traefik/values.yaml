@@ -14,9 +14,7 @@ ports:
   traefik:
     expose:
       default: false
-  web:
-    expose:
-      default: false
+  web: null
   websecure:
     asDefault: true
     expose:

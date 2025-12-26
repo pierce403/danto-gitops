@@ -6,7 +6,7 @@ metadata:
 spec:
   description: App workloads
   sourceRepos:
-    - https://github.com/your-org/danto-gitops
+    - https://github.com/pierce403/danto-gitops
   destinations:
     - namespace: meshcentral
       server: https://kubernetes.default.svc

@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/danto-gitops
+    repoURL: https://github.com/pierce403/danto-gitops
     targetRevision: main
     path: clusters/danto/argocd
   destination:

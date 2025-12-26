@@ -3,10 +3,12 @@ kind: Application
 metadata:
   name: platform-argo-ingress
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   project: platform
   source:
-    repoURL: https://github.com/your-org/danto-gitops
+    repoURL: https://github.com/pierce403/danto-gitops
     targetRevision: main
     path: clusters/danto/platform/argo-ingress
   destination:

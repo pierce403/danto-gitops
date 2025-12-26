@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: platform-authentik
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   project: platform
   sources:
@@ -13,9 +15,11 @@ spec:
         releaseName: authentik
         valueFiles:
           - $values/clusters/danto/platform/authentik/values.yaml
-    - repoURL: https://github.com/your-org/danto-gitops
+    - repoURL: https://github.com/pierce403/danto-gitops
       targetRevision: main
       ref: values
+    - repoURL: https://github.com/pierce403/danto-gitops
+      targetRevision: main
       path: clusters/danto/platform/authentik
   destination:
     server: https://kubernetes.default.svc
