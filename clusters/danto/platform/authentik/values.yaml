@@ -20,6 +20,12 @@ global:
         secretKeyRef:
           name: authentik-bootstrap
           key: bootstrap_token
+    - name: AUTHENTIK_BOOTSTRAP_EMAIL
+      valueFrom:
+        secretKeyRef:
+          name: authentik-bootstrap
+          key: bootstrap_email
+          optional: true
 
 authentik:
   log_level: info

@@ -14,6 +14,7 @@ if [ -z "$AUTHENTIK_TOKEN_DEFAULT" ]; then
     AUTHENTIK_TOKEN_DEFAULT=$(kubectl -n authentik get secret authentik-terraform -o jsonpath='{.data.token}' | base64 -d)
   elif kubectl -n authentik get secret authentik-bootstrap >/dev/null 2>&1; then
     AUTHENTIK_TOKEN_DEFAULT=$(kubectl -n authentik get secret authentik-bootstrap -o jsonpath='{.data.bootstrap_token}' | base64 -d)
+    echo "Using bootstrap token from authentik-bootstrap (API token). If auth fails, create an authentik-terraform token." >&2
   fi
 fi
 

@@ -48,7 +48,7 @@ Terraform manages authentik configuration (no manual UI for apps/providers/outpo
 
 ### One-time API token secret
 
-Preferred (headless): create `authentik-bootstrap` before first startup (see `docs/bootstrap-secrets.md`). The bootstrap token doubles as the Terraform API token.
+Preferred (headless): create `authentik-bootstrap` before first startup (see `docs/bootstrap-secrets.md`). The bootstrap token is an API token and can be used by Terraform.
 
 Alternative: create a separate API token and store it in a Kubernetes Secret:
 
@@ -68,6 +68,8 @@ Run from a machine with `kubectl` + `terraform` configured (not from `danto`):
 Notes:
 - The Terraform state is stored in a Kubernetes Secret in the `authentik` namespace.
 - If your instance uses different default flow slugs, update them in `clusters/danto/platform/authentik/terraform/main.tf`.
+- Bootstrap env vars are only read on first startup; ensure `authentik-bootstrap` exists before the first authentik pod starts.
+- Install Terraform on your workstation via your package manager or the HashiCorp install docs.
 
 ## Authentik + Google SSO
 
