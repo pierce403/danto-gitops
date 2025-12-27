@@ -22,11 +22,12 @@ kubectl -n argocd rollout status deploy/argocd-server --timeout=180s || true
 
 # Apply root app only when secrets are present
 if kubectl -n authentik get secret authentik-secrets >/dev/null 2>&1 \
-  && kubectl -n authentik get secret authentik-postgresql >/dev/null 2>&1; then
+  && kubectl -n authentik get secret authentik-postgresql >/dev/null 2>&1 \
+  && kubectl -n authentik get secret authentik-bootstrap >/dev/null 2>&1; then
   kubectl apply -f bootstrap/root-app.yaml
 else
   cat <<'MSG'
-Authentik secrets not found. Create them first:
+Required authentik secrets not found. Create them first:
   docs/bootstrap-secrets.md
 Then rerun this script (or apply bootstrap/root-app.yaml manually).
 MSG

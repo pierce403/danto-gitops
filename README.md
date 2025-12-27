@@ -15,6 +15,13 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - Firewall: allow `22` and `443` only
 - If using k3s, disable the built-in Traefik (`--disable traefik`) before installing this stack
 
+## Core philosophy
+
+- Everything is GitOps (no manual UI for app/provider config).
+- Secrets are never committed; they’re generated headlessly and stored as Kubernetes Secrets.
+- Bootstrap scripts should be fully non-interactive where possible.
+- Ops on `danto` runs setup only; the dev agent owns repo changes and automation.
+
 ## Bootstrap (short)
 
 1. If you fork/rename this repo, update repo URLs in:
@@ -41,7 +48,9 @@ Terraform manages authentik configuration (no manual UI for apps/providers/outpo
 
 ### One-time API token secret
 
-Create an authentik API token (admin) and store it in a Kubernetes Secret:
+Preferred (headless): create `authentik-bootstrap` before first startup (see `docs/bootstrap-secrets.md`). The bootstrap token doubles as the Terraform API token.
+
+Alternative: create a separate API token and store it in a Kubernetes Secret:
 
 ```bash
 kubectl -n authentik create secret generic authentik-terraform \
@@ -50,7 +59,7 @@ kubectl -n authentik create secret generic authentik-terraform \
 
 ### Apply Terraform
 
-Run from a machine with `kubectl` + `terraform` configured:
+Run from a machine with `kubectl` + `terraform` configured (not from `danto`):
 
 ```bash
 ./scripts/authentik-terraform.sh
