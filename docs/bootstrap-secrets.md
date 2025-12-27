@@ -28,3 +28,12 @@ Notes:
 - `authentik-secrets` is referenced by `clusters/danto/platform/authentik/values.yaml` via env vars.
 - `authentik-postgresql` is referenced by the embedded Postgres chart.
 - If you later move to an external DB, replace these with your external DB credentials and disable the embedded Postgres.
+
+## Authentik Terraform API token (post-setup)
+
+After authentik is running and you have an admin account, create an API token and store it as a secret:
+
+```bash
+kubectl -n authentik create secret generic authentik-terraform \
+  --from-literal=token=\"YOUR_AUTHENTIK_API_TOKEN\"
+```

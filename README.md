@@ -31,6 +31,34 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - `scripts/bootstrap-danto.sh`: installs k3s (with built-in Traefik disabled), installs Argo CD, and applies the root app once secrets exist.
   - Optional: set `ARGOCD_VERSION` (default: `v2.12.6`).
 - `scripts/status.sh`: quick cluster/Argo status checks.
+- `scripts/authentik-terraform.sh`: applies Git-managed authentik providers/apps via Terraform.
+
+## Authentik Terraform (GitOps-managed)
+
+Terraform manages authentik configuration (no manual UI for apps/providers/outposts). Changes live in:
+
+- `clusters/danto/platform/authentik/terraform/`
+
+### One-time API token secret
+
+Create an authentik API token (admin) and store it in a Kubernetes Secret:
+
+```bash
+kubectl -n authentik create secret generic authentik-terraform \
+  --from-literal=token="YOUR_AUTHENTIK_API_TOKEN"
+```
+
+### Apply Terraform
+
+Run from a machine with `kubectl` + `terraform` configured:
+
+```bash
+./scripts/authentik-terraform.sh
+```
+
+Notes:
+- The Terraform state is stored in a Kubernetes Secret in the `authentik` namespace.
+- If your instance uses different default flow slugs, update them in `clusters/danto/platform/authentik/terraform/main.tf`.
 
 ## Authentik + Google SSO
 
