@@ -40,6 +40,8 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
   - Generates authentik bootstrap secrets if missing (headless).
 - `scripts/status.sh`: quick cluster/Argo status checks.
 - `scripts/authentik-terraform.sh`: applies Git-managed authentik providers/apps via Terraform.
+- `scripts/check-authentik-forwardauth.sh`: validates the forward-auth endpoint is reachable inside the cluster.
+- `scripts/check-endpoints.sh`: sanity checks `https://argo.x43.io/` and `https://mesh.x43.io/`.
 
 ## Authentik Terraform (GitOps-managed)
 
