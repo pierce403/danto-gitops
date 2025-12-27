@@ -27,3 +27,9 @@ Running on server danto:
 
 - The agent cannot push git changes from danto. It should request any git changes instead of applying them.
 - On danto, the agent should only run commands to set up the server; no repo edits or git operations.
+
+Agent roles:
+
+- Dev agent (this repo): edits files, commits, and pushes changes.
+- Ops agent (running on `danto`): runs setup/ops commands only and never edits or pushes.
+- Ops agent can and should send recommendations to the dev agent (file paths + proposed changes or a patch summary).
