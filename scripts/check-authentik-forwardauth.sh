@@ -11,7 +11,12 @@ POD_NAME="fa-check-$(date +%s)"
 kubectl -n "$NAMESPACE" run "$POD_NAME" \
   --image=curlimages/curl:8.10.1 \
   --restart=Never \
-  --command -- sh -c "curl -sS -o /dev/null -w '%{http_code}\n' http://${SERVICE}.${NAMESPACE}.svc.cluster.local${PATH_SUFFIX}" \
+  --command -- sh -c "curl -sS -o /dev/null -w '%{http_code}\n' \
+    -H 'Host: auth.x43.io' \
+    -H 'X-Forwarded-Host: argo.x43.io' \
+    -H 'X-Forwarded-Proto: https' \
+    -H 'X-Forwarded-Uri: /' \
+    http://${SERVICE}.${NAMESPACE}.svc.cluster.local${PATH_SUFFIX}" \
   >/dev/null
 
 kubectl -n "$NAMESPACE" wait --for=condition=Ready pod/$POD_NAME --timeout=60s >/dev/null || true
