@@ -72,6 +72,91 @@ ensure_terraform() {
   fi
 }
 
+get_secret_value() {
+  local secret_name=$1
+  local key=$2
+  kubectl -n authentik get secret "$secret_name" -o "jsonpath={.data.${key}}" 2>/dev/null | base64 -d || true
+}
+
+ensure_authentik_secrets() {
+  kubectl create namespace authentik --dry-run=client -o yaml | kubectl apply -f -
+
+  if ! command -v openssl >/dev/null 2>&1; then
+    echo "openssl not found; installing..." >&2
+    if [ -f /etc/os-release ] && grep -qi '^ID=ubuntu' /etc/os-release; then
+      DEBIAN_FRONTEND=noninteractive apt-get update -y
+      DEBIAN_FRONTEND=noninteractive apt-get install -y openssl
+    elif [ -f /etc/os-release ] && grep -qi '^ID=debian' /etc/os-release; then
+      DEBIAN_FRONTEND=noninteractive apt-get update -y
+      DEBIAN_FRONTEND=noninteractive apt-get install -y openssl
+    else
+      echo "Unsupported OS for automated openssl install. Install openssl manually." >&2
+      exit 1
+    fi
+  fi
+
+  local secret_key=""
+  local db_password=""
+  local bootstrap_password=""
+  local bootstrap_token=""
+  local bootstrap_email=""
+
+  if kubectl -n authentik get secret authentik-secrets >/dev/null 2>&1; then
+    secret_key=$(get_secret_value authentik-secrets secret_key)
+    db_password=$(get_secret_value authentik-secrets postgresql_password)
+  fi
+
+  if [ -z "$db_password" ] && kubectl -n authentik get secret authentik-postgresql >/dev/null 2>&1; then
+    db_password=$(get_secret_value authentik-postgresql password)
+  fi
+
+  if kubectl -n authentik get secret authentik-bootstrap >/dev/null 2>&1; then
+    bootstrap_password=$(get_secret_value authentik-bootstrap bootstrap_password)
+    bootstrap_token=$(get_secret_value authentik-bootstrap bootstrap_token)
+    bootstrap_email=$(get_secret_value authentik-bootstrap bootstrap_email)
+  fi
+
+  secret_key=${AUTHENTIK_SECRET_KEY:-$secret_key}
+  db_password=${AUTHENTIK_DB_PASSWORD:-$db_password}
+  bootstrap_password=${AUTHENTIK_BOOTSTRAP_PASSWORD:-$bootstrap_password}
+  bootstrap_token=${AUTHENTIK_BOOTSTRAP_TOKEN:-$bootstrap_token}
+  bootstrap_email=${AUTHENTIK_BOOTSTRAP_EMAIL:-$bootstrap_email}
+
+  if [ -z "$secret_key" ]; then
+    secret_key=$(openssl rand -hex 32)
+  fi
+  if [ -z "$db_password" ]; then
+    db_password=$(openssl rand -hex 24)
+  fi
+  if [ -z "$bootstrap_password" ]; then
+    bootstrap_password=$(openssl rand -base64 24)
+  fi
+  if [ -z "$bootstrap_token" ]; then
+    bootstrap_token=$(openssl rand -hex 32)
+  fi
+  if [ -z "$bootstrap_email" ]; then
+    bootstrap_email="admin@x43.io"
+  fi
+
+  if ! kubectl -n authentik get secret authentik-secrets >/dev/null 2>&1; then
+    kubectl -n authentik create secret generic authentik-secrets \
+      --from-literal=secret_key="$secret_key" \
+      --from-literal=postgresql_password="$db_password"
+  fi
+
+  if ! kubectl -n authentik get secret authentik-postgresql >/dev/null 2>&1; then
+    kubectl -n authentik create secret generic authentik-postgresql \
+      --from-literal=password="$db_password"
+  fi
+
+  if ! kubectl -n authentik get secret authentik-bootstrap >/dev/null 2>&1; then
+    kubectl -n authentik create secret generic authentik-bootstrap \
+      --from-literal=bootstrap_password="$bootstrap_password" \
+      --from-literal=bootstrap_token="$bootstrap_token" \
+      --from-literal=bootstrap_email="$bootstrap_email"
+  fi
+}
+
 if ! command -v k3s >/dev/null 2>&1; then
   curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable traefik" sh -s -
 fi
@@ -79,6 +164,7 @@ fi
 export KUBECONFIG=${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}
 
 ensure_terraform
+ensure_authentik_secrets
 
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -n argocd -f "https://raw.githubusercontent.com/argoproj/argo-cd/${ARGOCD_VERSION}/manifests/install.yaml"
@@ -87,14 +173,4 @@ kubectl apply -n argocd -f "https://raw.githubusercontent.com/argoproj/argo-cd/$
 kubectl -n argocd rollout status deploy/argocd-server --timeout=180s || true
 
 # Apply root app only when secrets are present
-if kubectl -n authentik get secret authentik-secrets >/dev/null 2>&1 \
-  && kubectl -n authentik get secret authentik-postgresql >/dev/null 2>&1 \
-  && kubectl -n authentik get secret authentik-bootstrap >/dev/null 2>&1; then
-  kubectl apply -f bootstrap/root-app.yaml
-else
-  cat <<'MSG'
-Required authentik secrets not found. Create them first:
-  docs/bootstrap-secrets.md
-Then rerun this script (or apply bootstrap/root-app.yaml manually).
-MSG
-fi
+kubectl apply -f bootstrap/root-app.yaml

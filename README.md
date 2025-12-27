@@ -28,16 +28,16 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
    - `bootstrap/root-app.yaml`
    - `clusters/danto/argocd/projects/*.yaml`
    - `clusters/danto/argocd/applications/*.yaml`
-2. Run the bootstrap script on the server:
+2. Run the bootstrap script on the server (secrets are generated if missing):
    - `sudo ./scripts/bootstrap-danto.sh`
-3. If the script warns about missing secrets, create them (see `docs/bootstrap-secrets.md`) and rerun the script.
-4. Wait for Argo CD to sync, then finish initial authentik setup at `https://auth.x43.io`.
+3. Wait for Argo CD to sync, then finish initial authentik setup at `https://auth.x43.io`.
 
 ## Scripts
 
 - `scripts/bootstrap-danto.sh`: installs k3s (with built-in Traefik disabled), installs Argo CD, and applies the root app once secrets exist.
   - Optional: set `ARGOCD_VERSION` (default: `v2.12.6`).
   - Installs or upgrades Terraform to `>= 1.5.0` on Ubuntu via the HashiCorp apt repo (non-interactive). Debian is best-effort.
+  - Generates authentik bootstrap secrets if missing (headless).
 - `scripts/status.sh`: quick cluster/Argo status checks.
 - `scripts/authentik-terraform.sh`: applies Git-managed authentik providers/apps via Terraform.
 

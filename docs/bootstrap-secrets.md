@@ -1,6 +1,6 @@
 # Bootstrap secrets (authentik)
 
-This repo avoids committing raw secrets. Create these before Argo syncs the authentik app.
+This repo avoids committing raw secrets. The bootstrap script now generates these automatically; use this doc only if you need to create them manually (offline or custom values).
 
 ## Namespaces
 
@@ -8,7 +8,7 @@ This repo avoids committing raw secrets. Create these before Argo syncs the auth
 kubectl create namespace authentik
 ```
 
-## Authentik secret key + DB password
+## Authentik secret key + DB password (manual)
 
 Generate a single password and reuse it for both authentik and the embedded Postgres:
 
@@ -38,7 +38,7 @@ Notes:
 - `authentik-bootstrap` seeds the admin bootstrap password/token on first startup and must exist before the first authentik pod starts.
 - If you later move to an external DB, replace these with your external DB credentials and disable the embedded Postgres.
 
-## Authentik Terraform API token (post-setup)
+## Authentik Terraform API token (post-setup, manual)
 
 After authentik is running, you can reuse the bootstrap token (API intent) or create a separate API token and store it as a secret:
 
