@@ -18,11 +18,23 @@ install_terraform_ubuntu() {
   DEBIAN_FRONTEND=noninteractive apt-get update -y
   DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg curl lsb-release ca-certificates
   install -m 0755 -d /usr/share/keyrings
-  curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-  echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
-    > /etc/apt/sources.list.d/hashicorp.list
+  if [ ! -f /usr/share/keyrings/hashicorp-archive-keyring.gpg ]; then
+    if ! curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg; then
+      echo "Failed to download HashiCorp GPG key (check outbound network). Install terraform manually." >&2
+      exit 1
+    fi
+  fi
+  if [ ! -f /etc/apt/sources.list.d/hashicorp.list ]; then
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+      > /etc/apt/sources.list.d/hashicorp.list
+  fi
   DEBIAN_FRONTEND=noninteractive apt-get update -y
   DEBIAN_FRONTEND=noninteractive apt-get install -y terraform
+}
+
+install_terraform_debian() {
+  echo "Debian support is best-effort. Using HashiCorp's Ubuntu repo for terraform." >&2
+  install_terraform_ubuntu
 }
 
 ensure_terraform() {
@@ -36,8 +48,10 @@ ensure_terraform() {
 
   if [ -z "$current_version" ]; then
     echo "Installing terraform..."
-    if [ -f /etc/os-release ] && grep -qiE '^ID=ubuntu|^ID=debian' /etc/os-release; then
+    if [ -f /etc/os-release ] && grep -qi '^ID=ubuntu' /etc/os-release; then
       install_terraform_ubuntu
+    elif [ -f /etc/os-release ] && grep -qi '^ID=debian' /etc/os-release; then
+      install_terraform_debian
     else
       echo "Unsupported OS for automated terraform install. Install terraform >= ${TERRAFORM_MIN_VERSION} manually." >&2
       exit 1
@@ -47,8 +61,10 @@ ensure_terraform() {
 
   if ! version_ge "$current_version" "$TERRAFORM_MIN_VERSION"; then
     echo "Upgrading terraform to >= ${TERRAFORM_MIN_VERSION} (current: ${current_version})..."
-    if [ -f /etc/os-release ] && grep -qiE '^ID=ubuntu|^ID=debian' /etc/os-release; then
+    if [ -f /etc/os-release ] && grep -qi '^ID=ubuntu' /etc/os-release; then
       install_terraform_ubuntu
+    elif [ -f /etc/os-release ] && grep -qi '^ID=debian' /etc/os-release; then
+      install_terraform_debian
     else
       echo "Unsupported OS for automated terraform upgrade. Install terraform >= ${TERRAFORM_MIN_VERSION} manually." >&2
       exit 1
