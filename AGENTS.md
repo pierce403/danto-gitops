@@ -25,8 +25,8 @@ Commit/push policy:
 
 Running on server danto:
 
-- The agent cannot push git changes from danto. It should request any git changes instead of applying them.
-- On danto, the agent should only run commands to set up the server; no repo edits or git operations.
+- The agent can pull/fetch/clone but cannot push or commit from danto. It should request any git changes instead of applying them.
+- On danto, the agent should only run commands to set up the server; no repo edits.
 
 Agent roles:
 
