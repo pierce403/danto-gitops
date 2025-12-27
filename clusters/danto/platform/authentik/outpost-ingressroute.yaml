@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: authentik-outpost
+  namespace: authentik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: HostRegexp(`{subdomain:[a-z0-9-]+}.x43.io`) && PathPrefix(`/outpost.goauthentik.io/`)
+      kind: Rule
+      services:
+        - name: authentik-server
+          port: 80
+  tls:
+    certResolver: le
