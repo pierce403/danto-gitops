@@ -17,7 +17,7 @@ export AUTHENTIK_SECRET_KEY=$(openssl rand -hex 32)
 export AUTHENTIK_DB_PASSWORD=$(openssl rand -hex 24)
 export AUTHENTIK_BOOTSTRAP_PASSWORD=$(openssl rand -base64 24)
 export AUTHENTIK_BOOTSTRAP_TOKEN=$(openssl rand -hex 32)
-export AUTHENTIK_BOOTSTRAP_EMAIL="admin@x43.io" # optional
+export AUTHENTIK_BOOTSTRAP_EMAIL="pierce403@gmail.com" # optional
 
 kubectl -n authentik create secret generic authentik-secrets \
   --from-literal=secret_key="$AUTHENTIK_SECRET_KEY" \
@@ -45,4 +45,14 @@ After authentik is running, you can reuse the bootstrap token (API intent) or cr
 ```bash
 kubectl -n authentik create secret generic authentik-terraform \
   --from-literal=token="YOUR_AUTHENTIK_API_TOKEN"
+```
+
+## Google OAuth credentials (manual)
+
+Create this secret for Terraform to configure the Google OAuth source:
+
+```bash
+kubectl -n authentik create secret generic authentik-google-oauth \
+  --from-literal=client_id="YOUR_GOOGLE_CLIENT_ID" \
+  --from-literal=client_secret="YOUR_GOOGLE_CLIENT_SECRET"
 ```

@@ -12,6 +12,29 @@ spec:
       labels:
         app: meshcentral
     spec:
+      initContainers:
+        - name: render-config
+          image: alpine:3.19
+          command:
+            - /bin/sh
+            - -c
+            - apk add --no-cache gettext >/dev/null && envsubst < /config-tmpl/config.json.tmpl > /config/config.json
+          env:
+            - name: MESH_OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: meshcentral-oidc
+                  key: client_id
+            - name: MESH_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: meshcentral-oidc
+                  key: client_secret
+          volumeMounts:
+            - name: config-tmpl
+              mountPath: /config-tmpl
+            - name: config
+              mountPath: /config
       containers:
         - name: meshcentral
           image: ghcr.io/ylianst/meshcentral:1.1.55
@@ -28,6 +51,8 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: meshcentral-data
-        - name: config
+        - name: config-tmpl
           configMap:
             name: meshcentral-config
+        - name: config
+          emptyDir: {}

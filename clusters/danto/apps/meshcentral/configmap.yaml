@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: meshcentral-config
 data:
-  config.json: |
+  config.json.tmpl: |
     {
       "settings": {
         "Cert": "mesh.x43.io",
@@ -14,7 +14,25 @@ data:
       },
       "domains": {
         "": {
-          "certUrl": "https://mesh.x43.io/"
+          "certUrl": "https://mesh.x43.io/",
+          "authStrategies": {
+            "oidc": {
+              "issuer": "https://auth.x43.io/application/o/meshcentral-oidc/",
+              "clientid": "${MESH_OIDC_CLIENT_ID}",
+              "clientsecret": "${MESH_OIDC_CLIENT_SECRET}",
+              "newAccounts": true,
+              "groups": {
+                "required": ["admins"],
+                "siteadmin": ["admins"],
+                "revokeAdmin": true,
+                "scope": "groups",
+                "claim": "groups"
+              },
+              "custom": {
+                "scope": ["openid", "profile", "email", "groups"]
+              }
+            }
+          }
         }
       }
     }

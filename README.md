@@ -49,6 +49,16 @@ Terraform manages authentik configuration (no manual UI for apps/providers/outpo
 
 - `clusters/danto/platform/authentik/terraform/`
 
+### Google OAuth credentials
+
+Create a Kubernetes secret with your Google OAuth client credentials:
+
+```bash
+kubectl -n authentik create secret generic authentik-google-oauth \
+  --from-literal=client_id="YOUR_GOOGLE_CLIENT_ID" \
+  --from-literal=client_secret="YOUR_GOOGLE_CLIENT_SECRET"
+```
+
 ### One-time API token secret
 
 Preferred (headless): create `authentik-bootstrap` before first startup (see `docs/bootstrap-secrets.md`). The bootstrap token is an API token and can be used by Terraform.
@@ -75,12 +85,15 @@ Notes:
 - Install Terraform on your workstation via your package manager or the HashiCorp install docs.
 - On Ubuntu, `scripts/bootstrap-danto.sh` installs/upgrades Terraform automatically; on other OSes, install it manually.
 - If the server has no outbound network access, Terraform install will fail; install it manually in that case.
+- `scripts/authentik-terraform.sh` also creates the `meshcentral-oidc` secret if missing.
+- Admin access is restricted by an authentik policy to `admin_email` (default: `pierce403@gmail.com`).
 
 ## Authentik + Google SSO
 
 - Create a Google OAuth client for `https://auth.x43.io`.
-- Add Google as an authentik IdP, then create authentik Applications as your launchpad.
-- Default policy: restrict access to your Google account (or Workspace domain/groups).
+- Store its credentials in `authentik-google-oauth` (see “Google OAuth credentials” below).
+- Terraform wires Google as the default login source and creates the Authentik apps/providers.
+- Default policy: restrict access to `admin_email` (default: `pierce403@gmail.com`) or optional admin domain.
 
 ## Notes
 
@@ -88,7 +101,7 @@ Notes:
 - Authentik cookie domain is set to `.x43.io` for sibling subdomains.
 - For SSO across sibling subdomains, ensure your authentik forward-auth provider/outpost is configured for `.x43.io` to avoid redirect loops.
 - Authentik uses the chart’s embedded Postgres for v1. Upgrade later to external DB (and Redis if you add it).
-- MeshCentral is configured for TLS offload behind Traefik; adjust `clusters/danto/apps/meshcentral/configmap.yaml` if needed.
+- MeshCentral is configured for TLS offload behind Traefik and OIDC via authentik; adjust `clusters/danto/apps/meshcentral/configmap.yaml` if needed.
 - Argo CD is terminated at Traefik; `argocd-server` runs in insecure mode internally.
 
 ## Secrets hygiene

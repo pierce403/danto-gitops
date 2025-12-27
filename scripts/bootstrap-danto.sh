@@ -135,7 +135,7 @@ ensure_authentik_secrets() {
     bootstrap_token=$(openssl rand -hex 32)
   fi
   if [ -z "$bootstrap_email" ]; then
-    bootstrap_email="admin@x43.io"
+    bootstrap_email="pierce403@gmail.com"
   fi
 
   if ! kubectl -n authentik get secret authentik-secrets >/dev/null 2>&1; then
