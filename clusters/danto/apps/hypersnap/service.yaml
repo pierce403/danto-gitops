@@ -36,6 +36,10 @@ spec:
   selector:
     app: hypersnap-statsd
   ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
     - name: statsd
       port: 8125
       targetPort: statsd

@@ -5,6 +5,7 @@ provider "authentik" {
 locals {
   argo_host = "https://argo.${var.domain}"
   cloud_host = "https://cloud.${var.domain}"
+  grafana_host = "https://grafana.${var.domain}"
   hypersnap_host = "https://hypersnap.${var.domain}"
   mesh_host = "https://mesh.${var.domain}"
   pad_host = "https://pad.${var.domain}"
@@ -108,6 +109,24 @@ resource "authentik_application" "cloud" {
   slug              = "cloud"
   protocol_provider = authentik_provider_proxy.cloud.id
   meta_launch_url   = local.cloud_host
+  open_in_new_tab   = true
+}
+
+resource "authentik_provider_proxy" "grafana" {
+  name                = "Grafana"
+  external_host       = local.grafana_host
+  mode                = "forward_single"
+  authentication_flow = data.authentik_flow.default_authentication.id
+  authorization_flow  = data.authentik_flow.default_authorization.id
+  invalidation_flow   = data.authentik_flow.default_invalidation.id
+  cookie_domain       = ".${var.domain}"
+}
+
+resource "authentik_application" "grafana" {
+  name              = "Grafana"
+  slug              = "grafana"
+  protocol_provider = authentik_provider_proxy.grafana.id
+  meta_launch_url   = local.grafana_host
   open_in_new_tab   = true
 }
 
@@ -254,6 +273,11 @@ resource "authentik_outpost_provider_attachment" "embedded_cloud" {
   protocol_provider = authentik_provider_proxy.cloud.id
 }
 
+resource "authentik_outpost_provider_attachment" "embedded_grafana" {
+  outpost           = data.authentik_outpost.embedded.id
+  protocol_provider = authentik_provider_proxy.grafana.id
+}
+
 resource "authentik_outpost_provider_attachment" "embedded_hypersnap" {
   outpost           = data.authentik_outpost.embedded.id
   protocol_provider = authentik_provider_proxy.hypersnap.id
@@ -282,6 +306,12 @@ resource "authentik_policy_binding" "argo_admins" {
 
 resource "authentik_policy_binding" "cloud_admins" {
   target = authentik_application.cloud.uuid
+  policy = authentik_policy_expression.admins_only.id
+  order  = 0
+}
+
+resource "authentik_policy_binding" "grafana_admins" {
+  target = authentik_application.grafana.uuid
   policy = authentik_policy_expression.admins_only.id
   order  = 0
 }

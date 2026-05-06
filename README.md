@@ -11,7 +11,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 
 ## Prereqs
 
-- DNS A records: `auth.x43.io`, `argo.x43.io`, `mesh.x43.io`, `cloud.x43.io`, `pad.x43.io`, `pad-sandbox.x43.io`, `hypersnap.x43.io`, `danto.x43.io` → the same public IP
+- DNS A records: `auth.x43.io`, `argo.x43.io`, `mesh.x43.io`, `cloud.x43.io`, `pad.x43.io`, `pad-sandbox.x43.io`, `hypersnap.x43.io`, `grafana.x43.io`, `danto.x43.io` → the same public IP
 - Firewall: allow `22`, `443`, `3382/udp`, and `3383/tcp`
 - If using k3s, disable the built-in Traefik (`--disable traefik`) before installing this stack
 
@@ -41,7 +41,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - `scripts/status.sh`: quick cluster/Argo status checks.
 - `scripts/authentik-terraform.sh`: applies Git-managed authentik providers/apps via Terraform.
 - `scripts/check-authentik-forwardauth.sh`: validates the forward-auth endpoint is reachable inside the cluster.
-- `scripts/check-endpoints.sh`: sanity checks the public HTTPS endpoints for Argo CD, MeshCentral, Nextcloud, CryptPad, and Hypersnap.
+- `scripts/check-endpoints.sh`: sanity checks the public HTTPS endpoints for Argo CD, MeshCentral, Nextcloud, CryptPad, Hypersnap, and Grafana.
 
 ## Authentik Terraform (GitOps-managed)
 
@@ -128,14 +128,16 @@ Notes:
 Hypersnap runs as a stateful Farcaster/Snapchain-derived node using `farcasterorg/hypersnap:latest`.
 
 - HTTP API: `https://hypersnap.x43.io/v2/farcaster/*` via Traefik websecure and authentik forward-auth.
+- Grafana: `https://grafana.x43.io/` via Traefik websecure and authentik forward-auth.
 - Node gossip: public `3382/udp` via Traefik `IngressRouteUDP`.
 - gRPC: public `3383/tcp` via Traefik `IngressRouteTCP`.
 - Storage: `hypersnap-data` PVC requests `2Ti`; upstream documents `1.5TB` free storage as the minimum.
 - Runtime resources request `4` CPUs and `16Gi` memory.
+- Metrics flow: Hypersnap emits StatsD metrics to `hypersnap-statsd`; Grafana provisions the upstream Hypersnap/Snapchain dashboard with a Graphite datasource backed by that StatsD container.
 
 The HTTP API is authenticated because this repo requires every web-exposed service to use the shared authentik forward-auth middleware. The raw gossip and gRPC node ports are not browser endpoints and are exposed through dedicated Traefik entrypoints.
 
-DNS remains provider-managed for now. Prefer Terraform or ExternalDNS against the DNS provider API over self-hosting authoritative DNS inside the cluster; if self-hosted DNS is needed later, delegate a subdomain instead of moving all of `x43.io`.
+DNS remains provider-managed for now. A CNAME does not delegate DNS control; authoritative control comes from NS delegation. Prefer Terraform or ExternalDNS against the DNS provider API over self-hosting authoritative DNS inside the cluster. If self-hosted DNS is needed later, delegate a subdomain to at least two authoritative nameservers instead of moving all of `x43.io` to one server.
 
 ## Notes
 
@@ -154,6 +156,7 @@ DNS remains provider-managed for now. Prefer Terraform or ExternalDNS against th
 - `https://mesh.x43.io/` MeshCentral
 - `https://cloud.x43.io/` Nextcloud
 - `https://hypersnap.x43.io/v2/farcaster/` Hypersnap HTTP API
+- `https://grafana.x43.io/` Hypersnap/Snapchain metrics dashboard
 - `https://pad.x43.io/` CryptPad
 - `https://pad-sandbox.x43.io/` CryptPad sandbox companion host
 

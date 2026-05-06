@@ -11,7 +11,7 @@ data:
     read_node = true
 
     [statsd]
-    prefix="hypersnap"
+    prefix="snapchain"
     addr="hypersnap-statsd:8125"
     use_tags=true
 
