@@ -5,7 +5,7 @@ URLS=(
   "https://argo.x43.io/"
   "https://cloud.x43.io/"
   "https://grafana.x43.io/"
-  "https://hypersnap.x43.io/v2/farcaster/users?fid=1"
+  "https://snap.x43.io/v2/farcaster/users?fid=1"
   "https://mesh.x43.io/"
   "https://pad.x43.io/"
   "https://pad-sandbox.x43.io/"

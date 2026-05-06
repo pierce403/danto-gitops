@@ -6,7 +6,7 @@ locals {
   argo_host = "https://argo.${var.domain}"
   cloud_host = "https://cloud.${var.domain}"
   grafana_host = "https://grafana.${var.domain}"
-  hypersnap_host = "https://hypersnap.${var.domain}"
+  hypersnap_host = "https://snap.${var.domain}"
   mesh_host = "https://mesh.${var.domain}"
   pad_host = "https://pad.${var.domain}"
   pad_sandbox_host = "https://pad-sandbox.${var.domain}"

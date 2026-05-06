@@ -11,7 +11,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 
 ## Prereqs
 
-- DNS A records: `auth.x43.io`, `argo.x43.io`, `mesh.x43.io`, `cloud.x43.io`, `pad.x43.io`, `pad-sandbox.x43.io`, `hypersnap.x43.io`, `grafana.x43.io`, `danto.x43.io` → the same public IP
+- DNS A records: `auth.x43.io`, `argo.x43.io`, `mesh.x43.io`, `cloud.x43.io`, `pad.x43.io`, `pad-sandbox.x43.io`, `snap.x43.io`, `grafana.x43.io`, `danto.x43.io` → the same public IP
 - Firewall: allow `22`, `443`, `3382/udp`, and `3383/tcp`
 - If using k3s, disable the built-in Traefik (`--disable traefik`) before installing this stack
 
@@ -127,7 +127,7 @@ Notes:
 
 Hypersnap runs as a stateful Farcaster/Snapchain-derived node using `farcasterorg/hypersnap:latest`.
 
-- HTTP API: `https://hypersnap.x43.io/v2/farcaster/*` via Traefik websecure and authentik forward-auth.
+- HTTP API: `https://snap.x43.io/v2/farcaster/*` via Traefik websecure and authentik forward-auth.
 - Grafana: `https://grafana.x43.io/` via Traefik websecure and authentik forward-auth.
 - Node gossip: public `3382/udp` via Traefik `IngressRouteUDP`.
 - gRPC: public `3383/tcp` via Traefik `IngressRouteTCP`.
@@ -155,7 +155,7 @@ DNS remains provider-managed for now. A CNAME does not delegate DNS control; aut
 - `https://argo.x43.io/` Argo CD
 - `https://mesh.x43.io/` MeshCentral
 - `https://cloud.x43.io/` Nextcloud
-- `https://hypersnap.x43.io/v2/farcaster/` Hypersnap HTTP API
+- `https://snap.x43.io/v2/farcaster/` Hypersnap HTTP API
 - `https://grafana.x43.io/` Hypersnap/Snapchain metrics dashboard
 - `https://pad.x43.io/` CryptPad
 - `https://pad-sandbox.x43.io/` CryptPad sandbox companion host

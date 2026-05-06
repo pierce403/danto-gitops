@@ -10,7 +10,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: hypersnap.x43.io
+    - host: snap.x43.io
       http:
         paths:
           - path: /
@@ -22,4 +22,4 @@ spec:
                   name: http
   tls:
     - hosts:
-        - hypersnap.x43.io
+        - snap.x43.io
