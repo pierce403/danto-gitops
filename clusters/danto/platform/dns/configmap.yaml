@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hickory-dns-config
+data:
+  config.toml: |
+    listen_addrs_ipv4 = ["0.0.0.0"]
+
+    [[zones]]
+    zone = "x43.io."
+    zone_type = "Primary"
+    file = "x43.io.zone"
+    enable_dnssec = false
+
+  x43.io.zone.tmpl: |
+    $ORIGIN x43.io.
+    $TTL 300
+
+    @ 300 IN SOA ns1.x43.io. admin.x43.io. 2026050601 1800 900 604800 300
+    @ 300 IN NS ns1.x43.io.
+    @ 300 IN NS ns2.x43.io.
+
+    ns1 300 IN A ${DANTO_PUBLIC_IPV4}
+    ns2 300 IN A ${DANTO_PUBLIC_IPV4}
+    @ 300 IN A ${DANTO_PUBLIC_IPV4}
+    danto 300 IN A ${DANTO_PUBLIC_IPV4}
+
+    auth 300 IN CNAME danto.x43.io.
+    argo 300 IN CNAME danto.x43.io.
+    cloud 300 IN CNAME danto.x43.io.
+    grafana 300 IN CNAME danto.x43.io.
+    mesh 300 IN CNAME danto.x43.io.
+    pad 300 IN CNAME danto.x43.io.
+    pad-sandbox 300 IN CNAME danto.x43.io.
+    snap 300 IN CNAME danto.x43.io.

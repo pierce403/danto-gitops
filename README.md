@@ -6,13 +6,13 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 
 - `bootstrap/` one-time Argo root app
 - `clusters/danto/argocd/` Argo projects + applications (app-of-apps)
-- `clusters/danto/platform/` ingress + auth middleware bits
+- `clusters/danto/platform/` ingress, auth, and authoritative DNS bits
 - `clusters/danto/apps/` MeshCentral, Nextcloud (`cloud`), CryptPad (`pad`), Hypersnap + future apps
 
 ## Prereqs
 
-- DNS: `danto.x43.io` A record → the public server IP; `auth.x43.io`, `argo.x43.io`, `mesh.x43.io`, `cloud.x43.io`, `pad.x43.io`, `pad-sandbox.x43.io`, `snap.x43.io`, and `grafana.x43.io` CNAME → `danto.x43.io`
-- Firewall: allow `22`, `443`, `3382/udp`, and `3383/tcp`
+- DNS: create registrar glue for `ns1.x43.io` and `ns2.x43.io` pointing at danto's public IPv4, then set `x43.io` nameservers to `ns1.x43.io` and `ns2.x43.io`
+- Firewall: allow `22`, `53/tcp`, `53/udp`, `443`, `3382/udp`, and `3383/tcp`
 - If using k3s, disable the built-in Traefik (`--disable traefik`) before installing this stack
 
 ## Core philosophy
@@ -40,7 +40,6 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
   - Generates authentik bootstrap secrets if missing (headless).
 - `scripts/status.sh`: quick cluster/Argo status checks.
 - `scripts/authentik-terraform.sh`: applies Git-managed authentik providers/apps via Terraform.
-- `scripts/dns-terraform.sh`: applies Git-managed Namecheap DNS records.
 - `scripts/check-authentik-forwardauth.sh`: validates the forward-auth endpoint is reachable inside the cluster.
 - `scripts/check-endpoints.sh`: sanity checks the public HTTPS endpoints for Argo CD, MeshCentral, Nextcloud, CryptPad, Hypersnap, and Grafana.
 
@@ -89,35 +88,30 @@ Notes:
 - `scripts/authentik-terraform.sh` also creates the `meshcentral-oidc` secret if missing.
 - Admin access is restricted by an authentik policy to `admin_email` (default: `pierce403@gmail.com`).
 
-## DNS Terraform (GitOps-managed)
+## Authoritative DNS
 
-`x43.io` currently uses Namecheap BasicDNS (`dns1.registrar-servers.com`, `dns2.registrar-servers.com`). DNS records are managed with the official Namecheap Terraform provider in:
+`x43.io` is served from the cluster by Hickory DNS in:
 
-- `clusters/danto/dns/namecheap/`
+- `clusters/danto/platform/dns/`
 
-The DNS model keeps one A record for `danto.x43.io`; app hostnames CNAME to it. This makes public IP rotation a single-record change.
+The DNS app is authoritative-only for `x43.io`. It does not run an open recursive resolver or public forwarder.
 
-Create a local `.env.dns` file or export these variables:
-
-```bash
-export NAMECHEAP_USER_NAME="YOUR_NAMECHEAP_USERNAME"
-export NAMECHEAP_API_USER="YOUR_NAMECHEAP_USERNAME"
-export NAMECHEAP_API_KEY="YOUR_NAMECHEAP_API_KEY"
-export NAMECHEAP_CLIENT_IP="YOUR_WHITELISTED_IPV4"
-export DANTO_IPV4="YOUR_DANTO_PUBLIC_IPV4"
-```
-
-Then apply:
+Create the public IP secret before syncing the DNS app:
 
 ```bash
-./scripts/dns-terraform.sh
+kubectl get namespace dns >/dev/null 2>&1 || kubectl create namespace dns
+kubectl -n dns create secret generic danto-public-ip \
+  --from-literal=ipv4="YOUR_DANTO_PUBLIC_IPV4"
 ```
 
-Notes:
-- Namecheap API access must be enabled and `NAMECHEAP_CLIENT_IP` must be whitelisted in the Namecheap dashboard.
-- Terraform state and local `.env*` files are gitignored.
-- The DNS module uses `MERGE` mode so it manages the declared danto/app records without intentionally replacing unrelated records.
-- Review the first Terraform plan carefully if existing app hostnames are already A records; switching a hostname to CNAME may require removing the old conflicting host record in Namecheap.
+At Namecheap, configure custom nameserver/glue hosts:
+
+- `ns1.x43.io` -> danto public IPv4
+- `ns2.x43.io` -> danto public IPv4
+
+Then set the `x43.io` domain nameservers to `ns1.x43.io` and `ns2.x43.io`.
+
+The zone model keeps one `danto.x43.io` A record; app hostnames CNAME to it. This makes public IP rotation a single secret update plus DNS pod restart/resync.
 
 ## Authentik + Google SSO
 
@@ -168,11 +162,12 @@ Hypersnap runs as a stateful Farcaster/Snapchain-derived node using `farcasteror
 
 The HTTP API is authenticated because this repo requires every web-exposed service to use the shared authentik forward-auth middleware. The raw gossip and gRPC node ports are not browser endpoints and are exposed through dedicated Traefik entrypoints.
 
-DNS remains provider-managed through Namecheap Terraform. A CNAME does not delegate DNS control; authoritative control comes from NS delegation. If self-hosted DNS is needed later, delegate a subdomain to at least two authoritative nameservers instead of moving all of `x43.io` to one server.
+DNS is self-hosted for `x43.io` through Hickory DNS. A CNAME does not delegate DNS control; authoritative control comes from NS delegation. `ns1.x43.io` and `ns2.x43.io` currently point at the same danto IP, which is acceptable for experimentation but not resilient.
 
 ## Notes
 
 - Traefik uses TLS-ALPN-01 (443 only) with persistent ACME storage; the HTTP (web) entrypoint is disabled.
+- Traefik exposes authoritative DNS on `53/tcp` and `53/udp` for Hickory DNS.
 - Traefik also exposes dedicated Hypersnap node entrypoints on `3382/udp` and `3383/tcp`.
 - Authentik cookie domain is set to `.x43.io` for sibling subdomains.
 - For SSO across sibling subdomains, ensure your authentik forward-auth provider/outpost is configured for `.x43.io` to avoid redirect loops.

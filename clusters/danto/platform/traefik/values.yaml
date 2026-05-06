@@ -19,6 +19,18 @@ ports:
     asDefault: true
     expose:
       default: true
+  dns-tcp:
+    port: 1053
+    exposedPort: 53
+    protocol: TCP
+    expose:
+      default: true
+  dns-udp:
+    port: 1053
+    exposedPort: 53
+    protocol: UDP
+    expose:
+      default: true
   hypersnap-gossip:
     port: 3382
     exposedPort: 3382

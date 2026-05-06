@@ -56,3 +56,13 @@ kubectl -n authentik create secret generic authentik-google-oauth \
   --from-literal=client_id="YOUR_GOOGLE_CLIENT_ID" \
   --from-literal=client_secret="YOUR_GOOGLE_CLIENT_SECRET"
 ```
+
+## Authoritative DNS public IP
+
+Hickory DNS renders the `x43.io` zone from this secret:
+
+```bash
+kubectl get namespace dns >/dev/null 2>&1 || kubectl create namespace dns
+kubectl -n dns create secret generic danto-public-ip \
+  --from-literal=ipv4="YOUR_DANTO_PUBLIC_IPV4"
+```

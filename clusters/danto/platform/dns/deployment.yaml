@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hickory-dns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hickory-dns
+  template:
+    metadata:
+      labels:
+        app: hickory-dns
+    spec:
+      initContainers:
+        - name: render-zone
+          image: alpine:3.19
+          command:
+            - /bin/sh
+            - -c
+            - sed "s/\${DANTO_PUBLIC_IPV4}/${DANTO_PUBLIC_IPV4}/g" /config/x43.io.zone.tmpl > /zones/x43.io.zone
+          env:
+            - name: DANTO_PUBLIC_IPV4
+              valueFrom:
+                secretKeyRef:
+                  name: danto-public-ip
+                  key: ipv4
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: zones
+              mountPath: /zones
+      containers:
+        - name: hickory-dns
+          image: hickorydns/hickory-dns:0.26.0-beta.3
+          args:
+            - --port
+            - "5353"
+            - --config
+            - /config/config.toml
+            - --zone-dir
+            - /zones
+          ports:
+            - name: dns-tcp
+              containerPort: 5353
+              protocol: TCP
+            - name: dns-udp
+              containerPort: 5353
+              protocol: UDP
+          readinessProbe:
+            tcpSocket:
+              port: dns-tcp
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: zones
+              mountPath: /zones
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: hickory-dns-config
+        - name: zones
+          emptyDir: {}

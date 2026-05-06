@@ -1,0 +1,12 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: hickory-dns-tcp
+spec:
+  entryPoints:
+    - dns-tcp
+  routes:
+    - match: HostSNI(`*`)
+      services:
+        - name: hickory-dns
+          port: dns-tcp
