@@ -19,6 +19,18 @@ ports:
     asDefault: true
     expose:
       default: true
+  hypersnap-gossip:
+    port: 3382
+    exposedPort: 3382
+    protocol: UDP
+    expose:
+      default: true
+  hypersnap-grpc:
+    port: 3383
+    exposedPort: 3383
+    protocol: TCP
+    expose:
+      default: true
 
 service:
   type: LoadBalancer

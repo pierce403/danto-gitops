@@ -8,7 +8,13 @@ spec:
   sourceRepos:
     - https://github.com/pierce403/danto-gitops
   destinations:
+    - namespace: cloud
+      server: https://kubernetes.default.svc
+    - namespace: hypersnap
+      server: https://kubernetes.default.svc
     - namespace: meshcentral
+      server: https://kubernetes.default.svc
+    - namespace: pad
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: "*"

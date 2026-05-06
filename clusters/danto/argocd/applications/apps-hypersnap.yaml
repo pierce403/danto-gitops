@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps-hypersnap
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: apps
+  source:
+    repoURL: https://github.com/pierce403/danto-gitops
+    targetRevision: main
+    path: clusters/danto/apps/hypersnap
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hypersnap
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

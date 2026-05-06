@@ -1,0 +1,50 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pad
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: le
+    traefik.ingress.kubernetes.io/router.middlewares: authentik-authentik-forward-auth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: pad.x43.io
+      http:
+        paths:
+          - path: /cryptpad_websocket
+            pathType: Prefix
+            backend:
+              service:
+                name: pad
+                port:
+                  name: websocket
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pad
+                port:
+                  name: http
+    - host: pad-sandbox.x43.io
+      http:
+        paths:
+          - path: /cryptpad_websocket
+            pathType: Prefix
+            backend:
+              service:
+                name: pad
+                port:
+                  name: websocket
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pad
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - pad.x43.io
+        - pad-sandbox.x43.io

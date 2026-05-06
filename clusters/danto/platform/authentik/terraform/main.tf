@@ -4,7 +4,11 @@ provider "authentik" {
 
 locals {
   argo_host = "https://argo.${var.domain}"
+  cloud_host = "https://cloud.${var.domain}"
+  hypersnap_host = "https://hypersnap.${var.domain}"
   mesh_host = "https://mesh.${var.domain}"
+  pad_host = "https://pad.${var.domain}"
+  pad_sandbox_host = "https://pad-sandbox.${var.domain}"
   mesh_oidc_issuer = "https://auth.${var.domain}/application/o/meshcentral-oidc/"
   mesh_oidc_redirect_uri = "https://mesh.${var.domain}/auth-oidc-callback"
   admin_policy_expression = var.admin_domain != "" ? "return request.user and (request.user.email == \\\"${var.admin_email}\\\" or request.user.email.endswith(\\\"@${var.admin_domain}\\\"))" : "return request.user and request.user.email == \\\"${var.admin_email}\\\""
@@ -89,6 +93,42 @@ resource "authentik_application" "argo" {
   open_in_new_tab   = true
 }
 
+resource "authentik_provider_proxy" "cloud" {
+  name                = "Nextcloud"
+  external_host       = local.cloud_host
+  mode                = "forward_single"
+  authentication_flow = data.authentik_flow.default_authentication.id
+  authorization_flow  = data.authentik_flow.default_authorization.id
+  invalidation_flow   = data.authentik_flow.default_invalidation.id
+  cookie_domain       = ".${var.domain}"
+}
+
+resource "authentik_application" "cloud" {
+  name              = "Nextcloud"
+  slug              = "cloud"
+  protocol_provider = authentik_provider_proxy.cloud.id
+  meta_launch_url   = local.cloud_host
+  open_in_new_tab   = true
+}
+
+resource "authentik_provider_proxy" "hypersnap" {
+  name                = "Hypersnap"
+  external_host       = local.hypersnap_host
+  mode                = "forward_single"
+  authentication_flow = data.authentik_flow.default_authentication.id
+  authorization_flow  = data.authentik_flow.default_authorization.id
+  invalidation_flow   = data.authentik_flow.default_invalidation.id
+  cookie_domain       = ".${var.domain}"
+}
+
+resource "authentik_application" "hypersnap" {
+  name              = "Hypersnap"
+  slug              = "hypersnap"
+  protocol_provider = authentik_provider_proxy.hypersnap.id
+  meta_launch_url   = local.hypersnap_host
+  open_in_new_tab   = true
+}
+
 resource "authentik_provider_proxy" "mesh" {
   name                = "MeshCentral"
   external_host       = local.mesh_host
@@ -104,6 +144,42 @@ resource "authentik_application" "mesh" {
   slug              = "meshcentral"
   protocol_provider = authentik_provider_proxy.mesh.id
   meta_launch_url   = local.mesh_host
+  open_in_new_tab   = true
+}
+
+resource "authentik_provider_proxy" "pad" {
+  name                = "CryptPad"
+  external_host       = local.pad_host
+  mode                = "forward_single"
+  authentication_flow = data.authentik_flow.default_authentication.id
+  authorization_flow  = data.authentik_flow.default_authorization.id
+  invalidation_flow   = data.authentik_flow.default_invalidation.id
+  cookie_domain       = ".${var.domain}"
+}
+
+resource "authentik_application" "pad" {
+  name              = "CryptPad"
+  slug              = "pad"
+  protocol_provider = authentik_provider_proxy.pad.id
+  meta_launch_url   = local.pad_host
+  open_in_new_tab   = true
+}
+
+resource "authentik_provider_proxy" "pad_sandbox" {
+  name                = "CryptPad Sandbox"
+  external_host       = local.pad_sandbox_host
+  mode                = "forward_single"
+  authentication_flow = data.authentik_flow.default_authentication.id
+  authorization_flow  = data.authentik_flow.default_authorization.id
+  invalidation_flow   = data.authentik_flow.default_invalidation.id
+  cookie_domain       = ".${var.domain}"
+}
+
+resource "authentik_application" "pad_sandbox" {
+  name              = "CryptPad Sandbox"
+  slug              = "pad-sandbox"
+  protocol_provider = authentik_provider_proxy.pad_sandbox.id
+  meta_launch_url   = local.pad_sandbox_host
   open_in_new_tab   = true
 }
 
@@ -173,13 +249,45 @@ resource "authentik_outpost_provider_attachment" "embedded_argo" {
   protocol_provider = authentik_provider_proxy.argo.id
 }
 
+resource "authentik_outpost_provider_attachment" "embedded_cloud" {
+  outpost           = data.authentik_outpost.embedded.id
+  protocol_provider = authentik_provider_proxy.cloud.id
+}
+
+resource "authentik_outpost_provider_attachment" "embedded_hypersnap" {
+  outpost           = data.authentik_outpost.embedded.id
+  protocol_provider = authentik_provider_proxy.hypersnap.id
+}
+
 resource "authentik_outpost_provider_attachment" "embedded_mesh" {
   outpost           = data.authentik_outpost.embedded.id
   protocol_provider = authentik_provider_proxy.mesh.id
 }
 
+resource "authentik_outpost_provider_attachment" "embedded_pad" {
+  outpost           = data.authentik_outpost.embedded.id
+  protocol_provider = authentik_provider_proxy.pad.id
+}
+
+resource "authentik_outpost_provider_attachment" "embedded_pad_sandbox" {
+  outpost           = data.authentik_outpost.embedded.id
+  protocol_provider = authentik_provider_proxy.pad_sandbox.id
+}
+
 resource "authentik_policy_binding" "argo_admins" {
   target = authentik_application.argo.uuid
+  policy = authentik_policy_expression.admins_only.id
+  order  = 0
+}
+
+resource "authentik_policy_binding" "cloud_admins" {
+  target = authentik_application.cloud.uuid
+  policy = authentik_policy_expression.admins_only.id
+  order  = 0
+}
+
+resource "authentik_policy_binding" "hypersnap_admins" {
+  target = authentik_application.hypersnap.uuid
   policy = authentik_policy_expression.admins_only.id
   order  = 0
 }
@@ -192,6 +300,18 @@ resource "authentik_policy_binding" "mesh_admins" {
 
 resource "authentik_policy_binding" "mesh_oidc_admins" {
   target = authentik_application.mesh_oidc.uuid
+  policy = authentik_policy_expression.admins_only.id
+  order  = 0
+}
+
+resource "authentik_policy_binding" "pad_admins" {
+  target = authentik_application.pad.uuid
+  policy = authentik_policy_expression.admins_only.id
+  order  = 0
+}
+
+resource "authentik_policy_binding" "pad_sandbox_admins" {
+  target = authentik_application.pad_sandbox.uuid
   policy = authentik_policy_expression.admins_only.id
   order  = 0
 }

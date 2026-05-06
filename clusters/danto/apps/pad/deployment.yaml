@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pad
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: pad
+  template:
+    metadata:
+      labels:
+        app: pad
+    spec:
+      initContainers:
+        - name: render-config
+          image: alpine:3.20
+          command:
+            - /bin/sh
+            - -c
+            - |
+              cat <<EOF >/generated-config/config.js
+              module.exports = {
+                httpUnsafeOrigin: 'https://pad.x43.io',
+                httpSafeOrigin: 'https://pad-sandbox.x43.io',
+                httpAddress: '0.0.0.0',
+                filePath: '/cryptpad/persistent/datastore/',
+                archivePath: '/cryptpad/persistent/data/archive',
+                pinPath: '/cryptpad/persistent/data/pins',
+                taskPath: '/cryptpad/persistent/data/tasks',
+                blockPath: '/cryptpad/persistent/block',
+                blobPath: '/cryptpad/persistent/blob',
+                blobStagingPath: '/cryptpad/persistent/data/blobstage',
+                decreePath: '/cryptpad/persistent/data/decrees',
+                logPath: '/cryptpad/persistent/data/logs',
+                logToStdout: true,
+                logLevel: 'info',
+                logFeedback: false,
+                installMethod: 'kubernetes',
+              };
+              EOF
+              cat <<EOF >/generated-customize/application_config.js
+              /* global AppConfig */
+              AppConfig.loginSalt = '${PAD_LOGIN_SALT}';
+              AppConfig.minimumPasswordLength = 12;
+              EOF
+          env:
+            - name: PAD_LOGIN_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: pad-secrets
+                  key: login_salt
+          volumeMounts:
+            - name: generated-config
+              mountPath: /generated-config
+            - name: generated-customize
+              mountPath: /generated-customize
+      containers:
+        - name: cryptpad
+          image: cryptpad/cryptpad:version-2026.2.2
+          env:
+            - name: CPAD_CONF
+              value: /cryptpad/config/config.js
+          ports:
+            - name: http
+              containerPort: 3000
+            - name: websocket
+              containerPort: 3003
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          volumeMounts:
+            - name: data
+              mountPath: /cryptpad/persistent
+            - name: generated-config
+              mountPath: /cryptpad/config/config.js
+              subPath: config.js
+            - name: generated-customize
+              mountPath: /cryptpad/customize/application_config.js
+              subPath: application_config.js
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: pad-data
+        - name: generated-config
+          emptyDir: {}
+        - name: generated-customize
+          emptyDir: {}

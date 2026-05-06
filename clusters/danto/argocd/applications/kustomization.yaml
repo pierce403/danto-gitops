@@ -4,4 +4,7 @@ resources:
   - platform-traefik.yaml
   - platform-authentik.yaml
   - platform-argo-ingress.yaml
+  - apps-cloud.yaml
+  - apps-hypersnap.yaml
   - apps-meshcentral.yaml
+  - apps-pad.yaml

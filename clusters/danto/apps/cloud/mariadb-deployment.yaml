@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-db
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cloud-db
+  template:
+    metadata:
+      labels:
+        app: cloud-db
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:11.8.6
+          args:
+            - --transaction-isolation=READ-COMMITTED
+            - --log-bin=binlog
+            - --binlog-format=ROW
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cloud-secrets
+                  key: mariadb-root-password
+            - name: MARIADB_DATABASE
+              value: nextcloud
+            - name: MARIADB_USER
+              value: nextcloud
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cloud-secrets
+                  key: mariadb-password
+          ports:
+            - name: mysql
+              containerPort: 3306
+          readinessProbe:
+            tcpSocket:
+              port: mysql
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: mysql
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: cloud-db-data

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: hypersnap
+spec:
+  serviceName: hypersnap
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hypersnap
+  template:
+    metadata:
+      labels:
+        app: hypersnap
+    spec:
+      containers:
+        - name: hypersnap
+          image: farcasterorg/hypersnap:latest
+          imagePullPolicy: Always
+          workingDir: /app
+          command:
+            - ./hypersnap
+            - --config-path
+            - /config/config.toml
+          env:
+            - name: RUST_BACKTRACE
+              value: full
+          ports:
+            - name: http
+              containerPort: 3381
+              protocol: TCP
+            - name: gossip
+              containerPort: 3382
+              protocol: UDP
+            - name: grpc
+              containerPort: 3383
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "4"
+              memory: 16Gi
+            limits:
+              memory: 24Gi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: data
+              mountPath: /app/.rocks
+              subPath: rocks
+            - name: data
+              mountPath: /app/.rocks.snapshot
+              subPath: rocks.snapshot
+      volumes:
+        - name: config
+          configMap:
+            name: hypersnap-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: hypersnap-data

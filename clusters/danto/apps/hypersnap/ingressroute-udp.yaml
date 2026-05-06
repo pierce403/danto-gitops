@@ -1,0 +1,11 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteUDP
+metadata:
+  name: hypersnap-gossip
+spec:
+  entryPoints:
+    - hypersnap-gossip
+  routes:
+    - services:
+        - name: hypersnap-gossip
+          port: gossip

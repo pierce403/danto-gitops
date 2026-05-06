@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hypersnap
+spec:
+  selector:
+    app: hypersnap
+  ports:
+    - name: http
+      port: 3381
+      targetPort: http
+      protocol: TCP
+    - name: grpc
+      port: 3383
+      targetPort: grpc
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hypersnap-gossip
+spec:
+  selector:
+    app: hypersnap
+  ports:
+    - name: gossip
+      port: 3382
+      targetPort: gossip
+      protocol: UDP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hypersnap-statsd
+spec:
+  selector:
+    app: hypersnap-statsd
+  ports:
+    - name: statsd
+      port: 8125
+      targetPort: statsd
+      protocol: UDP

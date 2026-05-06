@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hypersnap-statsd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hypersnap-statsd
+  template:
+    metadata:
+      labels:
+        app: hypersnap-statsd
+    spec:
+      containers:
+        - name: statsd
+          image: graphiteapp/graphite-statsd:1.1.10-5
+          ports:
+            - name: statsd
+              containerPort: 8125
+              protocol: UDP

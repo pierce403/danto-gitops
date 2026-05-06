@@ -7,12 +7,12 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - `bootstrap/` one-time Argo root app
 - `clusters/danto/argocd/` Argo projects + applications (app-of-apps)
 - `clusters/danto/platform/` ingress + auth middleware bits
-- `clusters/danto/apps/` MeshCentral + future apps
+- `clusters/danto/apps/` MeshCentral, Nextcloud (`cloud`), CryptPad (`pad`), Hypersnap + future apps
 
 ## Prereqs
 
-- DNS A records: `auth.x43.io`, `argo.x43.io`, `mesh.x43.io`, `danto.x43.io` → the same public IP
-- Firewall: allow `22` and `443` only
+- DNS A records: `auth.x43.io`, `argo.x43.io`, `mesh.x43.io`, `cloud.x43.io`, `pad.x43.io`, `pad-sandbox.x43.io`, `hypersnap.x43.io`, `danto.x43.io` → the same public IP
+- Firewall: allow `22`, `443`, `3382/udp`, and `3383/tcp`
 - If using k3s, disable the built-in Traefik (`--disable traefik`) before installing this stack
 
 ## Core philosophy
@@ -41,7 +41,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - `scripts/status.sh`: quick cluster/Argo status checks.
 - `scripts/authentik-terraform.sh`: applies Git-managed authentik providers/apps via Terraform.
 - `scripts/check-authentik-forwardauth.sh`: validates the forward-auth endpoint is reachable inside the cluster.
-- `scripts/check-endpoints.sh`: sanity checks `https://argo.x43.io/` and `https://mesh.x43.io/`.
+- `scripts/check-endpoints.sh`: sanity checks the public HTTPS endpoints for Argo CD, MeshCentral, Nextcloud, CryptPad, and Hypersnap.
 
 ## Authentik Terraform (GitOps-managed)
 
@@ -95,14 +95,67 @@ Notes:
 - Terraform wires Google as the default login source and creates the Authentik apps/providers.
 - Default policy: restrict access to `admin_email` (default: `pierce403@gmail.com`) or optional admin domain.
 
+## App bootstrap secrets
+
+Create these secrets before syncing `cloud` and `pad` for the first time:
+
+### Nextcloud (`cloud.x43.io`)
+
+```bash
+kubectl get namespace cloud >/dev/null 2>&1 || kubectl create namespace cloud
+kubectl -n cloud create secret generic cloud-secrets \
+  --from-literal=mariadb-root-password="$(openssl rand -hex 32)" \
+  --from-literal=mariadb-password="$(openssl rand -hex 32)" \
+  --from-literal=nextcloud-admin-user="cloudadmin" \
+  --from-literal=nextcloud-admin-password="$(openssl rand -hex 32)"
+```
+
+### CryptPad (`pad.x43.io`)
+
+```bash
+kubectl get namespace pad >/dev/null 2>&1 || kubectl create namespace pad
+kubectl -n pad create secret generic pad-secrets \
+  --from-literal=login_salt="$(openssl rand -hex 32)"
+```
+
+Notes:
+- `login_salt` must be set before the first CryptPad user is created; changing it later breaks logins.
+- `cloud` and `pad` are protected at Traefik by the shared authentik forward-auth middleware, matching the rest of the repo.
+- CryptPad still has its own first-run onboarding flow; grab the setup token from the `pad` pod logs on initial boot to create the internal admin account.
+
+## Hypersnap
+
+Hypersnap runs as a stateful Farcaster/Snapchain-derived node using `farcasterorg/hypersnap:latest`.
+
+- HTTP API: `https://hypersnap.x43.io/v2/farcaster/*` via Traefik websecure and authentik forward-auth.
+- Node gossip: public `3382/udp` via Traefik `IngressRouteUDP`.
+- gRPC: public `3383/tcp` via Traefik `IngressRouteTCP`.
+- Storage: `hypersnap-data` PVC requests `2Ti`; upstream documents `1.5TB` free storage as the minimum.
+- Runtime resources request `4` CPUs and `16Gi` memory.
+
+The HTTP API is authenticated because this repo requires every web-exposed service to use the shared authentik forward-auth middleware. The raw gossip and gRPC node ports are not browser endpoints and are exposed through dedicated Traefik entrypoints.
+
+DNS remains provider-managed for now. Prefer Terraform or ExternalDNS against the DNS provider API over self-hosting authoritative DNS inside the cluster; if self-hosted DNS is needed later, delegate a subdomain instead of moving all of `x43.io`.
+
 ## Notes
 
 - Traefik uses TLS-ALPN-01 (443 only) with persistent ACME storage; the HTTP (web) entrypoint is disabled.
+- Traefik also exposes dedicated Hypersnap node entrypoints on `3382/udp` and `3383/tcp`.
 - Authentik cookie domain is set to `.x43.io` for sibling subdomains.
 - For SSO across sibling subdomains, ensure your authentik forward-auth provider/outpost is configured for `.x43.io` to avoid redirect loops.
 - Authentik uses the chart’s embedded Postgres for v1. Upgrade later to external DB (and Redis if you add it).
 - MeshCentral is configured for TLS offload behind Traefik and OIDC via authentik; adjust `clusters/danto/apps/meshcentral/configmap.yaml` if needed.
 - Argo CD is terminated at Traefik; `argocd-server` runs in insecure mode internally.
+
+## External endpoints
+
+- `https://auth.x43.io/` authentik
+- `https://argo.x43.io/` Argo CD
+- `https://mesh.x43.io/` MeshCentral
+- `https://cloud.x43.io/` Nextcloud
+- `https://hypersnap.x43.io/v2/farcaster/` Hypersnap HTTP API
+- `https://pad.x43.io/` CryptPad
+- `https://pad-sandbox.x43.io/` CryptPad sandbox companion host
 
 ## Secrets hygiene
 
