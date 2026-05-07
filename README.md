@@ -195,3 +195,5 @@ No raw secrets are committed. Bootstrap secrets are created manually; see `docs/
 ## CI checks
 
 GitHub Actions runs kustomize/helm rendering plus kubeconform validation. Configure branch protection to require this workflow so phone merges are blocked on render failures.
+
+The `danto-smoke` workflow is manual plus hourly. It checks public DNS delegation, verifies `test.x43.io -> 6.6.6.6`, and confirms `https://argo.x43.io/` is reachable from GitHub-hosted runners. It does not use cluster, Argo, registrar, or DNS-provider credentials.

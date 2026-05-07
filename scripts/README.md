@@ -13,3 +13,4 @@ Utility scripts for bootstrapping and validating the cluster.
 Notes:
 - Scripts are intended to be non-interactive and idempotent where possible.
 - On `danto`, only run setup/ops scripts; do not modify or push git changes.
+- GitHub Actions `danto-smoke` runs `check-dns.sh` plus a public Argo endpoint check without any secrets.

@@ -1,0 +1,44 @@
+name: danto-smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+
+jobs:
+  public-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install DNS tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dnsutils
+
+      - name: Check authoritative DNS
+        run: ./scripts/check-dns.sh
+
+      - name: Check recursive DNS for test record
+        run: |
+          set -euo pipefail
+          answer=$(dig test.x43.io A +short)
+          echo "test.x43.io -> ${answer}"
+          if ! printf '%s\n' "$answer" | grep -Fx "6.6.6.6" >/dev/null; then
+            echo "test.x43.io did not resolve to 6.6.6.6" >&2
+            exit 1
+          fi
+
+      - name: Check Argo public endpoint
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://argo.x43.io/ || true)
+          echo "https://argo.x43.io/ -> ${code}"
+          case "$code" in
+            200|302|401)
+              ;;
+            *)
+              echo "Argo endpoint is not reachable through public DNS/TLS yet" >&2
+              exit 1
+              ;;
+          esac
