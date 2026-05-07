@@ -11,7 +11,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 
 ## Prereqs
 
-- DNS: create registrar glue for `ns1.x43.io` and `ns2.x43.io` pointing at danto's public IPv4, then set `x43.io` nameservers to `ns1.x43.io` and `ns2.x43.io`
+- DNS: `x43.io` nameservers are `x43ns1.deanpierce.net` and `x43ns2.deanpierce.net`, both pointing at danto's public IPv4
 - Firewall: allow `22`, `53/tcp`, `53/udp`, `443`, `3382/udp`, and `3383/tcp`
 - If using k3s, disable the built-in Traefik (`--disable traefik`) before installing this stack
 
@@ -41,6 +41,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - `scripts/status.sh`: quick cluster/Argo status checks.
 - `scripts/authentik-terraform.sh`: applies Git-managed authentik providers/apps via Terraform.
 - `scripts/check-authentik-forwardauth.sh`: validates the forward-auth endpoint is reachable inside the cluster.
+- `scripts/check-dns.sh`: checks the authoritative `x43.io` DNS server and delegation.
 - `scripts/check-endpoints.sh`: sanity checks the public HTTPS endpoints for Argo CD, MeshCentral, Nextcloud, CryptPad, Hypersnap, and Grafana.
 
 ## Authentik Terraform (GitOps-managed)
@@ -104,14 +105,15 @@ kubectl -n dns create secret generic danto-public-ip \
   --from-literal=ipv4="YOUR_DANTO_PUBLIC_IPV4"
 ```
 
-At Namecheap, configure custom nameserver/glue hosts:
-
-- `ns1.x43.io` -> danto public IPv4
-- `ns2.x43.io` -> danto public IPv4
-
-Then set the `x43.io` domain nameservers to `ns1.x43.io` and `ns2.x43.io`.
+At the registrar, `x43.io` delegates to `x43ns1.deanpierce.net` and `x43ns2.deanpierce.net`. Those names live outside `x43.io`, so `x43.io` does not need in-zone glue records for its own nameservers.
 
 The zone model keeps one `danto.x43.io` A record; app hostnames CNAME to it. This makes public IP rotation a single secret update plus DNS pod restart/resync.
+
+Once Argo has synced the DNS app and port `53` is open, verify DNS:
+
+```bash
+./scripts/check-dns.sh
+```
 
 ## Authentik + Google SSO
 
@@ -162,7 +164,7 @@ Hypersnap runs as a stateful Farcaster/Snapchain-derived node using `farcasteror
 
 The HTTP API is authenticated because this repo requires every web-exposed service to use the shared authentik forward-auth middleware. The raw gossip and gRPC node ports are not browser endpoints and are exposed through dedicated Traefik entrypoints.
 
-DNS is self-hosted for `x43.io` through Hickory DNS. A CNAME does not delegate DNS control; authoritative control comes from NS delegation. `ns1.x43.io` and `ns2.x43.io` currently point at the same danto IP, which is acceptable for experimentation but not resilient.
+DNS is self-hosted for `x43.io` through Hickory DNS. A CNAME does not delegate DNS control; authoritative control comes from NS delegation. `x43ns1.deanpierce.net` and `x43ns2.deanpierce.net` currently point at the same danto IP, which is acceptable for experimentation but not resilient.
 
 ## Notes
 

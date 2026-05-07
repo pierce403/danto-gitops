@@ -16,12 +16,10 @@ data:
     $ORIGIN x43.io.
     $TTL 300
 
-    @ 300 IN SOA ns1.x43.io. admin.x43.io. 2026050601 1800 900 604800 300
-    @ 300 IN NS ns1.x43.io.
-    @ 300 IN NS ns2.x43.io.
+    @ 300 IN SOA x43ns1.deanpierce.net. admin.x43.io. 2026050602 1800 900 604800 300
+    @ 300 IN NS x43ns1.deanpierce.net.
+    @ 300 IN NS x43ns2.deanpierce.net.
 
-    ns1 300 IN A ${DANTO_PUBLIC_IPV4}
-    ns2 300 IN A ${DANTO_PUBLIC_IPV4}
     @ 300 IN A ${DANTO_PUBLIC_IPV4}
     danto 300 IN A ${DANTO_PUBLIC_IPV4}
 

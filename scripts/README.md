@@ -7,6 +7,7 @@ Utility scripts for bootstrapping and validating the cluster.
 - `authentik-terraform.sh` also reads Google OAuth credentials from `authentik-google-oauth` and creates `meshcentral-oidc` if missing.
 - `status.sh`: quick cluster/Argo status checks.
 - `check-authentik-forwardauth.sh`: validate the authentik forward-auth endpoint from inside the cluster.
+- `check-dns.sh`: validate authoritative DNS answers and public delegation for `x43.io`.
 - `check-endpoints.sh`: sanity checks for `https://argo.x43.io/` and `https://mesh.x43.io/`.
 
 Notes:
