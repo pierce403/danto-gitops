@@ -22,6 +22,7 @@ data:
 
     @ 300 IN A ${DANTO_PUBLIC_IPV4}
     danto 300 IN A ${DANTO_PUBLIC_IPV4}
+    test 300 IN A 6.6.6.6
 
     auth 300 IN CNAME danto.x43.io.
     argo 300 IN CNAME danto.x43.io.

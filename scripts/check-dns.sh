@@ -45,6 +45,9 @@ if [ -z "$danto" ]; then
 fi
 echo "danto.$DOMAIN A -> $danto"
 
+test_record=$(query "test.$DOMAIN" A)
+expect_line "test.$DOMAIN A" "6.6.6.6" "$test_record"
+
 for host in auth argo cloud grafana mesh pad pad-sandbox snap; do
   cname=$(query "$host.$DOMAIN" CNAME)
   expect_line "$host.$DOMAIN CNAME" "danto.$DOMAIN." "$cname"
