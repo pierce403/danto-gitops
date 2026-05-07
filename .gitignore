@@ -6,3 +6,4 @@
 *.tfvars.json
 .env
 .env.*
+.codex
