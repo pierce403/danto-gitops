@@ -21,15 +21,16 @@ Platform notes:
 Commit/push policy:
 
 - After any repo edit, always commit and push.
-- Exception: if hostname is `danto`, do not perform git operations; request changes instead.
+- Exception: if running on `danto` or otherwise lacking commit/push capability, do not edit, commit, or push; act as the deploy/ops agent and request repo changes from the dev agent.
 
 Running on server danto:
 
 - The agent can pull/fetch/clone but cannot push or commit from danto. It should request any git changes instead of applying them.
-- On danto, the agent should only run commands to set up the server; no repo edits.
+- On danto, the agent should focus on pulling the latest code, bootstrapping/applying Argo CD, checking sync status, inspecting Kubernetes resources/logs, and troubleshooting runtime/deployment issues.
+- On danto, the agent should only run setup/ops commands; no repo edits.
 
 Agent roles:
 
-- Dev agent (this repo): edits files, commits, and pushes changes.
-- Ops agent (running on `danto`): runs setup/ops commands only and never edits or pushes.
-- Ops agent can and should send recommendations to the dev agent (file paths + proposed changes or a patch summary).
+- Dev agent: has working commit/push capability. It edits files, commits, and pushes changes.
+- Deploy/ops agent: is running on `danto` or lacks commit/push capability. It pulls/fetches code, applies/bootstrap Argo, checks cluster state, troubleshoots workloads, and never edits, commits, or pushes.
+- Deploy/ops agent can and should send recommendations to the dev agent (file paths + proposed changes or a patch summary).
