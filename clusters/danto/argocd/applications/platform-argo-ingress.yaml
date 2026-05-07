@@ -5,6 +5,10 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "2"
+    notifications.argoproj.io/subscribe.on-sync-running-github.github: ""
+    notifications.argoproj.io/subscribe.on-deployed-github.github: ""
+    notifications.argoproj.io/subscribe.on-sync-failed-github.github: ""
+    notifications.argoproj.io/subscribe.on-health-degraded-github.github: ""
 spec:
   project: platform
   source:

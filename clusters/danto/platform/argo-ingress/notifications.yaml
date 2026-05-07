@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-notifications-cm
+    app.kubernetes.io/part-of: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+data:
+  context: |
+    argocdUrl: https://argo.x43.io
+
+  service.github: |
+    appID: $github-app-id
+    installationID: $github-installation-id
+    privateKey: $github-private-key
+
+  template.github-status-pending: |
+    message: Application {{.app.metadata.name}} is syncing {{.app.status.operationState.operation.sync.revision}}.
+    github:
+      status:
+        state: pending
+        label: "argocd/{{.app.metadata.name}}"
+        targetURL: "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true"
+
+  template.github-status-success: |
+    message: Application {{.app.metadata.name}} synced {{.app.status.operationState.syncResult.revision}} and is healthy.
+    github:
+      status:
+        state: success
+        label: "argocd/{{.app.metadata.name}}"
+        targetURL: "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true"
+
+  template.github-status-failure: |
+    message: Application {{.app.metadata.name}} failed syncing {{.app.status.operationState.syncResult.revision}}.
+    github:
+      status:
+        state: failure
+        label: "argocd/{{.app.metadata.name}}"
+        targetURL: "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true"
+
+  template.github-status-degraded: |
+    message: Application {{.app.metadata.name}} synced {{.app.status.sync.revision}} but health is {{.app.status.health.status}}.
+    github:
+      status:
+        state: error
+        label: "argocd/{{.app.metadata.name}}"
+        targetURL: "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}"
+
+  trigger.on-sync-running-github: |
+    - when: app.status.operationState.phase in ['Running']
+      oncePer: app.status.operationState.operation.sync.revision
+      send: [github-status-pending]
+
+  trigger.on-deployed-github: |
+    - when: app.status.operationState.phase in ['Succeeded'] and app.status.health.status == 'Healthy'
+      oncePer: app.status.operationState.syncResult.revision
+      send: [github-status-success]
+
+  trigger.on-sync-failed-github: |
+    - when: app.status.operationState.phase in ['Error', 'Failed']
+      oncePer: app.status.operationState.syncResult.revision
+      send: [github-status-failure]
+
+  trigger.on-health-degraded-github: |
+    - when: app.status.health.status == 'Degraded'
+      oncePer: app.status.sync.revision
+      send: [github-status-degraded]

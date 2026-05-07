@@ -89,6 +89,24 @@ Notes:
 - `scripts/authentik-terraform.sh` also creates the `meshcentral-oidc` secret if missing.
 - Admin access is restricted by an authentik policy to `admin_email` (default: `pierce403@gmail.com`).
 
+## Argo GitHub Commit Statuses
+
+Argo CD Notifications is configured to post GitHub commit statuses for each Argo Application when a commit starts syncing, syncs successfully, fails, or becomes degraded. This answers whether a pushed Git revision was actually consumed by Argo, because the status is emitted from Argo after it observes the application operation.
+
+Create a GitHub App with repository permission **Commit statuses: Read and write**, install it only on this repo, then create this secret on danto:
+
+```bash
+kubectl -n argocd create secret generic argocd-notifications-secret \
+  --from-literal=github-app-id="YOUR_GITHUB_APP_ID" \
+  --from-literal=github-installation-id="YOUR_GITHUB_APP_INSTALLATION_ID" \
+  --from-file=github-private-key=/path/to/private-key.pem
+```
+
+Notes:
+- The GitHub App does not need repository contents access.
+- The private key is stored only in the cluster Secret, never in this repo.
+- Status contexts look like `argocd/platform-dns`, `argocd/apps-hypersnap`, and `argocd/danto-root`.
+
 ## Authoritative DNS
 
 `x43.io` is served from the cluster by Hickory DNS in:

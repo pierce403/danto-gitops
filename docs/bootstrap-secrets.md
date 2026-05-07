@@ -66,3 +66,16 @@ kubectl get namespace dns >/dev/null 2>&1 || kubectl create namespace dns
 kubectl -n dns create secret generic danto-public-ip \
   --from-literal=ipv4="YOUR_DANTO_PUBLIC_IPV4"
 ```
+
+## Argo CD Notifications GitHub App
+
+Create a GitHub App with repository permission **Commit statuses: Read and write**, install it only on this repo, then store the app credentials in Argo CD:
+
+```bash
+kubectl -n argocd create secret generic argocd-notifications-secret \
+  --from-literal=github-app-id="YOUR_GITHUB_APP_ID" \
+  --from-literal=github-installation-id="YOUR_GITHUB_APP_INSTALLATION_ID" \
+  --from-file=github-private-key=/path/to/private-key.pem
+```
+
+The GitHub App does not need repository contents access.

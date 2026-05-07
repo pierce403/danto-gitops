@@ -3,6 +3,11 @@ kind: Application
 metadata:
   name: danto-root
   namespace: argocd
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-running-github.github: ""
+    notifications.argoproj.io/subscribe.on-deployed-github.github: ""
+    notifications.argoproj.io/subscribe.on-sync-failed-github.github: ""
+    notifications.argoproj.io/subscribe.on-health-degraded-github.github: ""
 spec:
   project: default
   source:
