@@ -8,6 +8,7 @@ fi
 
 ARGOCD_VERSION=${ARGOCD_VERSION:-v2.12.6}
 TERRAFORM_MIN_VERSION=${TERRAFORM_MIN_VERSION:-1.5.0}
+K3S_DATA_DIR=${K3S_DATA_DIR:-/srv/k3s/data}
 LOCAL_PATH_STORAGE_DIR=${LOCAL_PATH_STORAGE_DIR:-/srv/k3s/storage}
 
 configure_host_resolver() {
@@ -168,6 +169,7 @@ ensure_authentik_secrets() {
 }
 
 configure_local_path_storage() {
+  mkdir -p "$K3S_DATA_DIR"
   mkdir -p "$LOCAL_PATH_STORAGE_DIR"
 
   if ! kubectl -n kube-system get configmap local-path-config >/dev/null 2>&1; then
@@ -199,7 +201,7 @@ EOF
 
 if ! command -v k3s >/dev/null 2>&1; then
   configure_host_resolver
-  curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable traefik" sh -s -
+  curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable traefik --write-kubeconfig-mode 644 --data-dir ${K3S_DATA_DIR}" sh -s -
 fi
 
 export KUBECONFIG=${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}

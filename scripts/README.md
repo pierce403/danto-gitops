@@ -2,7 +2,8 @@
 
 Utility scripts for bootstrapping and validating the cluster.
 
-- `bootstrap-danto.sh`: install k3s (disable built-in Traefik), point k3s local-path PVC storage at `/srv/k3s/storage`, keep host DNS off the `127.0.0.53` stub when ServiceLB owns port `53`, install Argo CD, ensure Terraform is present, and create authentik secrets.
+- `bootstrap-danto.sh`: install k3s (disable built-in Traefik), put k3s data under `/srv/k3s/data`, point k3s local-path PVC storage at `/srv/k3s/storage`, keep host DNS off the `127.0.0.53` stub when ServiceLB owns port `53`, install Argo CD, ensure Terraform is present, and create authentik secrets.
+- `migrate-storage-to-srv.sh`: root-only ops script for moving existing Docker and k3s runtime state from `/var/lib` to `/srv`.
 - `authentik-terraform.sh`: run Terraform to manage authentik providers/apps (expects API token via secret or env vars).
 - `authentik-terraform.sh` also reads Google OAuth credentials from `authentik-google-oauth` and creates `meshcentral-oidc` if missing.
 - `status.sh`: quick cluster/Argo status checks.

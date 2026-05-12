@@ -12,7 +12,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 ## Prereqs
 
 - DNS: `x43.io` nameservers are `x43ns1.deanpierce.net` and `x43ns2.deanpierce.net`, both pointing at danto's public IPv4
-- Storage: k3s local-path PVC data should live on `/srv` (`/srv/k3s/storage` by default), not on the root filesystem
+- Storage: k3s runtime data should live on `/srv/k3s/data`, and k3s local-path PVC data should live on `/srv/k3s/storage`, not on the root filesystem.
 - Firewall: allow `22`, `53/tcp`, `53/udp`, `443`, `3382/udp`, and `3383/tcp`
 - If using k3s, disable the built-in Traefik (`--disable traefik`) before installing this stack
 - On danto, `/etc/resolv.conf` should not point at the systemd-resolved stub (`127.0.0.53`) once ServiceLB owns host port `53`; use `/run/systemd/resolve/resolv.conf` so containerd image pulls keep using upstream DNS.
@@ -38,6 +38,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 
 - `scripts/bootstrap-danto.sh`: installs k3s (with built-in Traefik disabled), installs Argo CD, and applies the root app once secrets exist.
   - Optional: set `ARGOCD_VERSION` (default: `v2.12.6`).
+  - Optional: set `K3S_DATA_DIR` (default: `/srv/k3s/data`) to choose where k3s runtime data is stored.
   - Optional: set `LOCAL_PATH_STORAGE_DIR` (default: `/srv/k3s/storage`) to choose where k3s local-path PVC data is provisioned.
   - Repoints `/etc/resolv.conf` from the systemd-resolved stub to `/run/systemd/resolve/resolv.conf` when needed, avoiding host DNS collisions with ServiceLB port `53`.
   - Installs or upgrades Terraform to `>= 1.5.0` on Ubuntu via the HashiCorp apt repo (non-interactive). Debian is best-effort.
@@ -47,6 +48,18 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - `scripts/check-authentik-forwardauth.sh`: validates the forward-auth endpoint is reachable inside the cluster.
 - `scripts/check-dns.sh`: checks the authoritative `x43.io` DNS server and delegation.
 - `scripts/check-endpoints.sh`: sanity checks the public HTTPS endpoints for Argo CD, MeshCentral, Mattermost, Nextcloud, CryptPad, Hypersnap, and Grafana.
+- `scripts/migrate-storage-to-srv.sh`: root-only migration helper for moving existing Docker and k3s runtime state from `/var/lib` to `/srv`.
+
+## Storage migration
+
+On an existing danto install, move heavy runtime state off the root filesystem before expanding apps:
+
+```bash
+sudo ./scripts/migrate-storage-to-srv.sh
+sudo ./scripts/migrate-storage-to-srv.sh --apply --delete-originals
+```
+
+The dry run shows the planned moves. The apply run stops Docker and k3s, copies `/var/lib/docker` to `/srv/docker`, copies `/var/lib/rancher/k3s` to `/srv/k3s/data`, repoints Docker and k3s, restarts services, and deletes the old root copies when `--delete-originals` is set. Leave `/var/lib/snapd` on root unless it becomes the next real pressure source; Docker and k3s are the high-value moves.
 
 ## Authentik Terraform (GitOps-managed)
 
