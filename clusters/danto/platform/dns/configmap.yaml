@@ -15,7 +15,7 @@ data:
     $ORIGIN x43.io.
     $TTL 300
 
-    @ 300 IN SOA x43ns1.deanpierce.net. admin.x43.io. 2026050602 1800 900 604800 300
+    @ 300 IN SOA x43ns1.deanpierce.net. admin.x43.io. 2026051201 1800 900 604800 300
     @ 300 IN NS x43ns1.deanpierce.net.
     @ 300 IN NS x43ns2.deanpierce.net.
 
@@ -25,7 +25,8 @@ data:
 
     auth 300 IN CNAME danto.x43.io.
     argo 300 IN CNAME danto.x43.io.
-    cloud 300 IN CNAME danto.x43.io.
+    chat 300 IN CNAME danto.x43.io.
+    drive 300 IN CNAME danto.x43.io.
     grafana 300 IN CNAME danto.x43.io.
     mesh 300 IN CNAME danto.x43.io.
     pad 300 IN CNAME danto.x43.io.

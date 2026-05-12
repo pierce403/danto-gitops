@@ -32,7 +32,7 @@ expect_line() {
 echo "Checking authoritative DNS at $SERVER for $DOMAIN"
 
 soa=$(query "$DOMAIN" SOA)
-expect_line "SOA" "x43ns1.deanpierce.net. admin.x43.io. 2026050602 1800 900 604800 300" "$soa"
+expect_line "SOA" "x43ns1.deanpierce.net. admin.x43.io. 2026051201 1800 900 604800 300" "$soa"
 
 ns=$(query "$DOMAIN" NS)
 expect_line "NS x43ns1" "x43ns1.deanpierce.net." "$ns"
@@ -48,7 +48,7 @@ echo "danto.$DOMAIN A -> $danto"
 test_record=$(query "test.$DOMAIN" A)
 expect_line "test.$DOMAIN A" "6.6.6.6" "$test_record"
 
-for host in auth argo cloud grafana mesh pad pad-sandbox snap; do
+for host in auth argo chat drive grafana mesh pad pad-sandbox snap; do
   cname=$(query "$host.$DOMAIN" CNAME)
   expect_line "$host.$DOMAIN CNAME" "danto.$DOMAIN." "$cname"
 done

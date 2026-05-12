@@ -7,7 +7,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - `bootstrap/` one-time Argo root app
 - `clusters/danto/argocd/` Argo projects + applications (app-of-apps)
 - `clusters/danto/platform/` ingress, auth, and authoritative DNS bits
-- `clusters/danto/apps/` MeshCentral, Nextcloud (`cloud`), CryptPad (`pad`), Hypersnap + future apps
+- `clusters/danto/apps/` MeshCentral, Mattermost (`chat`), Nextcloud (`cloud`), CryptPad (`pad`), Hypersnap + future apps
 
 ## Prereqs
 
@@ -46,7 +46,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - `scripts/authentik-terraform.sh`: applies Git-managed authentik providers/apps via Terraform.
 - `scripts/check-authentik-forwardauth.sh`: validates the forward-auth endpoint is reachable inside the cluster.
 - `scripts/check-dns.sh`: checks the authoritative `x43.io` DNS server and delegation.
-- `scripts/check-endpoints.sh`: sanity checks the public HTTPS endpoints for Argo CD, MeshCentral, Nextcloud, CryptPad, Hypersnap, and Grafana.
+- `scripts/check-endpoints.sh`: sanity checks the public HTTPS endpoints for Argo CD, MeshCentral, Mattermost, Nextcloud, CryptPad, Hypersnap, and Grafana.
 
 ## Authentik Terraform (GitOps-managed)
 
@@ -146,9 +146,9 @@ Once Argo has synced the DNS app and port `53` is open, verify DNS:
 
 ## App bootstrap secrets
 
-Create these secrets before syncing `cloud` and `pad` for the first time:
+Create these secrets before syncing `chat`, `cloud`, and `pad` for the first time:
 
-### Nextcloud (`cloud.x43.io`)
+### Nextcloud (`drive.x43.io`)
 
 ```bash
 kubectl get namespace cloud >/dev/null 2>&1 || kubectl create namespace cloud
@@ -157,6 +157,14 @@ kubectl -n cloud create secret generic cloud-secrets \
   --from-literal=mariadb-password="$(openssl rand -hex 32)" \
   --from-literal=nextcloud-admin-user="cloudadmin" \
   --from-literal=nextcloud-admin-password="$(openssl rand -hex 32)"
+```
+
+### Mattermost (`chat.x43.io`)
+
+```bash
+kubectl get namespace chat >/dev/null 2>&1 || kubectl create namespace chat
+kubectl -n chat create secret generic chat-secrets \
+  --from-literal=postgres-password="$(openssl rand -hex 32)"
 ```
 
 ### CryptPad (`pad.x43.io`)
@@ -169,7 +177,8 @@ kubectl -n pad create secret generic pad-secrets \
 
 Notes:
 - `login_salt` must be set before the first CryptPad user is created; changing it later breaks logins.
-- `cloud` and `pad` are protected at Traefik by the shared authentik forward-auth middleware, matching the rest of the repo.
+- `chat`, `cloud`, and `pad` are protected at Traefik by the shared authentik forward-auth middleware, matching the rest of the repo.
+- Mattermost open signup is enabled for initial account creation and remains behind authentik forward-auth.
 - CryptPad still has its own first-run onboarding flow; grab the setup token from the `pad` pod logs on initial boot to create the internal admin account.
 
 ## Hypersnap
@@ -205,7 +214,8 @@ DNS is self-hosted for `x43.io` through Hickory DNS. A CNAME does not delegate D
 - `https://auth.x43.io/` authentik
 - `https://argo.x43.io/` Argo CD
 - `https://mesh.x43.io/` MeshCentral
-- `https://cloud.x43.io/` Nextcloud
+- `https://chat.x43.io/` Mattermost
+- `https://drive.x43.io/` Nextcloud
 - `https://snap.x43.io/v2/farcaster/` Hypersnap HTTP API
 - `https://grafana.x43.io/` Hypersnap/Snapchain metrics dashboard
 - `https://pad.x43.io/` CryptPad

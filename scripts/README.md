@@ -8,7 +8,7 @@ Utility scripts for bootstrapping and validating the cluster.
 - `status.sh`: quick cluster/Argo status checks.
 - `check-authentik-forwardauth.sh`: validate the authentik forward-auth endpoint from inside the cluster.
 - `check-dns.sh`: validate authoritative DNS answers and public delegation for `x43.io`.
-- `check-endpoints.sh`: sanity checks for `https://argo.x43.io/` and `https://mesh.x43.io/`.
+- `check-endpoints.sh`: sanity checks for public HTTPS app endpoints.
 
 Notes:
 - Scripts are intended to be non-interactive and idempotent where possible.

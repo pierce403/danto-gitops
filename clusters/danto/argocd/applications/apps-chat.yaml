@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps-chat
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    notifications.argoproj.io/subscribe.on-sync-running-github.github: ""
+    notifications.argoproj.io/subscribe.on-deployed-github.github: ""
+    notifications.argoproj.io/subscribe.on-sync-failed-github.github: ""
+    notifications.argoproj.io/subscribe.on-health-degraded-github.github: ""
+spec:
+  project: apps
+  source:
+    repoURL: https://github.com/pierce403/danto-gitops
+    targetRevision: main
+    path: clusters/danto/apps/chat
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: chat
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

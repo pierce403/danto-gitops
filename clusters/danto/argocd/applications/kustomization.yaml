@@ -5,6 +5,7 @@ resources:
   - platform-dns.yaml
   - platform-authentik.yaml
   - platform-argo-ingress.yaml
+  - apps-chat.yaml
   - apps-cloud.yaml
   - apps-hypersnap.yaml
   - apps-meshcentral.yaml

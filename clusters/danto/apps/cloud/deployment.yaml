@@ -40,17 +40,17 @@ spec:
                   name: cloud-secrets
                   key: nextcloud-admin-password
             - name: NEXTCLOUD_TRUSTED_DOMAINS
-              value: cloud.x43.io
+              value: drive.x43.io
             - name: APACHE_DISABLE_REWRITE_IP
               value: "1"
             - name: TRUSTED_PROXIES
               value: 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
             - name: OVERWRITEHOST
-              value: cloud.x43.io
+              value: drive.x43.io
             - name: OVERWRITEPROTOCOL
               value: https
             - name: OVERWRITECLIURL
-              value: https://cloud.x43.io
+              value: https://drive.x43.io
             - name: NEXTCLOUD_INIT_HTACCESS
               value: "true"
           ports:

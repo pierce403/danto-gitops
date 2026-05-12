@@ -31,6 +31,7 @@ jobs:
           kustomize build clusters/danto/platform/argo-ingress | kubeconform -summary -ignore-missing-schemas -kubernetes-version 1.29.0 -
           kustomize build clusters/danto/platform/authentik | kubeconform -summary -ignore-missing-schemas -kubernetes-version 1.29.0 -
           kustomize build clusters/danto/platform/dns | kubeconform -summary -ignore-missing-schemas -kubernetes-version 1.29.0 -
+          kustomize build clusters/danto/apps/chat | kubeconform -summary -ignore-missing-schemas -kubernetes-version 1.29.0 -
           kustomize build clusters/danto/apps/cloud | kubeconform -summary -ignore-missing-schemas -kubernetes-version 1.29.0 -
           kustomize build clusters/danto/apps/hypersnap | kubeconform -summary -ignore-missing-schemas -kubernetes-version 1.29.0 -
           kustomize build clusters/danto/apps/meshcentral | kubeconform -summary -ignore-missing-schemas -kubernetes-version 1.29.0 -

@@ -8,6 +8,8 @@ spec:
   sourceRepos:
     - https://github.com/pierce403/danto-gitops
   destinations:
+    - namespace: chat
+      server: https://kubernetes.default.svc
     - namespace: cloud
       server: https://kubernetes.default.svc
     - namespace: hypersnap

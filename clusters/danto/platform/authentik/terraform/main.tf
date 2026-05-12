@@ -4,7 +4,8 @@ provider "authentik" {
 
 locals {
   argo_host = "https://argo.${var.domain}"
-  cloud_host = "https://cloud.${var.domain}"
+  chat_host = "https://chat.${var.domain}"
+  cloud_host = "https://drive.${var.domain}"
   grafana_host = "https://grafana.${var.domain}"
   hypersnap_host = "https://snap.${var.domain}"
   mesh_host = "https://mesh.${var.domain}"
@@ -94,6 +95,24 @@ resource "authentik_application" "argo" {
   open_in_new_tab   = true
 }
 
+resource "authentik_provider_proxy" "chat" {
+  name                = "Mattermost"
+  external_host       = local.chat_host
+  mode                = "forward_single"
+  authentication_flow = data.authentik_flow.default_authentication.id
+  authorization_flow  = data.authentik_flow.default_authorization.id
+  invalidation_flow   = data.authentik_flow.default_invalidation.id
+  cookie_domain       = ".${var.domain}"
+}
+
+resource "authentik_application" "chat" {
+  name              = "Mattermost"
+  slug              = "chat"
+  protocol_provider = authentik_provider_proxy.chat.id
+  meta_launch_url   = local.chat_host
+  open_in_new_tab   = true
+}
+
 resource "authentik_provider_proxy" "cloud" {
   name                = "Nextcloud"
   external_host       = local.cloud_host
@@ -106,7 +125,7 @@ resource "authentik_provider_proxy" "cloud" {
 
 resource "authentik_application" "cloud" {
   name              = "Nextcloud"
-  slug              = "cloud"
+  slug              = "drive"
   protocol_provider = authentik_provider_proxy.cloud.id
   meta_launch_url   = local.cloud_host
   open_in_new_tab   = true
@@ -268,6 +287,11 @@ resource "authentik_outpost_provider_attachment" "embedded_argo" {
   protocol_provider = authentik_provider_proxy.argo.id
 }
 
+resource "authentik_outpost_provider_attachment" "embedded_chat" {
+  outpost           = data.authentik_outpost.embedded.id
+  protocol_provider = authentik_provider_proxy.chat.id
+}
+
 resource "authentik_outpost_provider_attachment" "embedded_cloud" {
   outpost           = data.authentik_outpost.embedded.id
   protocol_provider = authentik_provider_proxy.cloud.id
@@ -300,6 +324,12 @@ resource "authentik_outpost_provider_attachment" "embedded_pad_sandbox" {
 
 resource "authentik_policy_binding" "argo_admins" {
   target = authentik_application.argo.uuid
+  policy = authentik_policy_expression.admins_only.id
+  order  = 0
+}
+
+resource "authentik_policy_binding" "chat_admins" {
+  target = authentik_application.chat.uuid
   policy = authentik_policy_expression.admins_only.id
   order  = 0
 }
