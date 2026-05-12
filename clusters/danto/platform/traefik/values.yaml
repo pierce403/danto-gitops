@@ -46,6 +46,7 @@ ports:
 
 service:
   type: LoadBalancer
+  single: false
 
 certificatesResolvers:
   le:
