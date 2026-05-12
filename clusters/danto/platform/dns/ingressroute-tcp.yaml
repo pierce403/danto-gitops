@@ -3,6 +3,7 @@ kind: IngressRouteTCP
 metadata:
   name: hickory-dns-tcp
 spec:
+  ingressClassName: traefik
   entryPoints:
     - dns-tcp
   routes:

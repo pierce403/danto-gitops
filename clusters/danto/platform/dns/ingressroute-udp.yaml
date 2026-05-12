@@ -3,6 +3,7 @@ kind: IngressRouteUDP
 metadata:
   name: hickory-dns-udp
 spec:
+  ingressClassName: traefik
   entryPoints:
     - dns-udp
   routes:

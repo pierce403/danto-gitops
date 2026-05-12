@@ -3,6 +3,7 @@ kind: IngressRouteUDP
 metadata:
   name: hypersnap-gossip
 spec:
+  ingressClassName: traefik
   entryPoints:
     - hypersnap-gossip
   routes:

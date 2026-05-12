@@ -3,6 +3,7 @@ kind: IngressRouteTCP
 metadata:
   name: hypersnap-grpc
 spec:
+  ingressClassName: traefik
   entryPoints:
     - hypersnap-grpc
   routes:
