@@ -39,7 +39,7 @@ spec:
             - "5353"
             - --config
             - /config/config.toml
-            - --zone-dir
+            - --zonedir
             - /zones
           ports:
             - name: dns-tcp

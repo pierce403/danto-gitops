@@ -2,7 +2,7 @@
 
 Utility scripts for bootstrapping and validating the cluster.
 
-- `bootstrap-danto.sh`: install k3s (disable built-in Traefik), install Argo CD, ensure Terraform is present, and create authentik secrets.
+- `bootstrap-danto.sh`: install k3s (disable built-in Traefik), point k3s local-path PVC storage at `/srv/k3s/storage`, install Argo CD, ensure Terraform is present, and create authentik secrets.
 - `authentik-terraform.sh`: run Terraform to manage authentik providers/apps (expects API token via secret or env vars).
 - `authentik-terraform.sh` also reads Google OAuth credentials from `authentik-google-oauth` and creates `meshcentral-oidc` if missing.
 - `status.sh`: quick cluster/Argo status checks.

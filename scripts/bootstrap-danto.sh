@@ -8,6 +8,7 @@ fi
 
 ARGOCD_VERSION=${ARGOCD_VERSION:-v2.12.6}
 TERRAFORM_MIN_VERSION=${TERRAFORM_MIN_VERSION:-1.5.0}
+LOCAL_PATH_STORAGE_DIR=${LOCAL_PATH_STORAGE_DIR:-/srv/k3s/storage}
 
 version_ge() {
   # returns 0 if $1 >= $2
@@ -157,12 +158,43 @@ ensure_authentik_secrets() {
   fi
 }
 
+configure_local_path_storage() {
+  mkdir -p "$LOCAL_PATH_STORAGE_DIR"
+
+  if ! kubectl -n kube-system get configmap local-path-config >/dev/null 2>&1; then
+    echo "local-path-config not found; skipping local-path storage directory patch." >&2
+    return
+  fi
+
+  local patch_file
+  patch_file=$(mktemp)
+  cat >"$patch_file" <<EOF
+data:
+  config.json: |-
+    {
+      "nodePathMap":[
+      {
+        "node":"DEFAULT_PATH_FOR_NON_LISTED_NODES",
+        "paths":["${LOCAL_PATH_STORAGE_DIR}"]
+      }
+      ]
+    }
+EOF
+
+  if ! kubectl -n kube-system patch configmap local-path-config --type merge --patch-file "$patch_file"; then
+    rm -f "$patch_file"
+    return 1
+  fi
+  rm -f "$patch_file"
+}
+
 if ! command -v k3s >/dev/null 2>&1; then
   curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable traefik" sh -s -
 fi
 
 export KUBECONFIG=${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}
 
+configure_local_path_storage
 ensure_terraform
 ensure_authentik_secrets
 

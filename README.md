@@ -12,6 +12,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 ## Prereqs
 
 - DNS: `x43.io` nameservers are `x43ns1.deanpierce.net` and `x43ns2.deanpierce.net`, both pointing at danto's public IPv4
+- Storage: k3s local-path PVC data should live on `/srv` (`/srv/k3s/storage` by default), not on the root filesystem
 - Firewall: allow `22`, `53/tcp`, `53/udp`, `443`, `3382/udp`, and `3383/tcp`
 - If using k3s, disable the built-in Traefik (`--disable traefik`) before installing this stack
 
@@ -36,6 +37,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 
 - `scripts/bootstrap-danto.sh`: installs k3s (with built-in Traefik disabled), installs Argo CD, and applies the root app once secrets exist.
   - Optional: set `ARGOCD_VERSION` (default: `v2.12.6`).
+  - Optional: set `LOCAL_PATH_STORAGE_DIR` (default: `/srv/k3s/storage`) to choose where k3s local-path PVC data is provisioned.
   - Installs or upgrades Terraform to `>= 1.5.0` on Ubuntu via the HashiCorp apt repo (non-interactive). Debian is best-effort.
   - Generates authentik bootstrap secrets if missing (headless).
 - `scripts/status.sh`: quick cluster/Argo status checks.
