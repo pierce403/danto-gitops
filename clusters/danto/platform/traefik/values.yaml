@@ -26,7 +26,7 @@ ports:
     expose:
       default: true
   dns-udp:
-    port: 1053
+    port: 1054
     exposedPort: 53
     protocol: UDP
     expose:
