@@ -15,6 +15,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - Storage: k3s local-path PVC data should live on `/srv` (`/srv/k3s/storage` by default), not on the root filesystem
 - Firewall: allow `22`, `53/tcp`, `53/udp`, `443`, `3382/udp`, and `3383/tcp`
 - If using k3s, disable the built-in Traefik (`--disable traefik`) before installing this stack
+- On danto, `/etc/resolv.conf` should not point at the systemd-resolved stub (`127.0.0.53`) once ServiceLB owns host port `53`; use `/run/systemd/resolve/resolv.conf` so containerd image pulls keep using upstream DNS.
 
 ## Core philosophy
 
@@ -38,6 +39,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - `scripts/bootstrap-danto.sh`: installs k3s (with built-in Traefik disabled), installs Argo CD, and applies the root app once secrets exist.
   - Optional: set `ARGOCD_VERSION` (default: `v2.12.6`).
   - Optional: set `LOCAL_PATH_STORAGE_DIR` (default: `/srv/k3s/storage`) to choose where k3s local-path PVC data is provisioned.
+  - Repoints `/etc/resolv.conf` from the systemd-resolved stub to `/run/systemd/resolve/resolv.conf` when needed, avoiding host DNS collisions with ServiceLB port `53`.
   - Installs or upgrades Terraform to `>= 1.5.0` on Ubuntu via the HashiCorp apt repo (non-interactive). Debian is best-effort.
   - Generates authentik bootstrap secrets if missing (headless).
 - `scripts/status.sh`: quick cluster/Argo status checks.
@@ -190,6 +192,7 @@ DNS is self-hosted for `x43.io` through Hickory DNS. A CNAME does not delegate D
 
 - Traefik uses TLS-ALPN-01 (443 only) with persistent ACME storage; the HTTP (web) entrypoint is disabled.
 - Traefik exposes authoritative DNS on `53/tcp` and `53/udp` for Hickory DNS.
+- K3s ServiceLB claims host port `53` for Traefik DNS. Keep danto's host resolver off the `127.0.0.53` stub, or local image pulls can fail while DNS is exposed.
 - Traefik also exposes dedicated Hypersnap node entrypoints on `3382/udp` and `3383/tcp`.
 - Authentik cookie domain is set to `.x43.io` for sibling subdomains.
 - For SSO across sibling subdomains, ensure your authentik forward-auth provider/outpost is configured for `.x43.io` to avoid redirect loops.

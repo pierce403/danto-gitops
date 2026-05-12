@@ -10,6 +10,15 @@ ARGOCD_VERSION=${ARGOCD_VERSION:-v2.12.6}
 TERRAFORM_MIN_VERSION=${TERRAFORM_MIN_VERSION:-1.5.0}
 LOCAL_PATH_STORAGE_DIR=${LOCAL_PATH_STORAGE_DIR:-/srv/k3s/storage}
 
+configure_host_resolver() {
+  if [ -L /etc/resolv.conf ] \
+    && [ "$(readlink -f /etc/resolv.conf)" = "/run/systemd/resolve/stub-resolv.conf" ] \
+    && [ -f /run/systemd/resolve/resolv.conf ]; then
+    echo "Pointing /etc/resolv.conf at /run/systemd/resolve/resolv.conf so host image pulls bypass the local DNS stub."
+    ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+  fi
+}
+
 version_ge() {
   # returns 0 if $1 >= $2
   [ "$(printf '%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]
@@ -189,11 +198,13 @@ EOF
 }
 
 if ! command -v k3s >/dev/null 2>&1; then
+  configure_host_resolver
   curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable traefik" sh -s -
 fi
 
 export KUBECONFIG=${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}
 
+configure_host_resolver
 configure_local_path_storage
 ensure_terraform
 ensure_authentik_secrets

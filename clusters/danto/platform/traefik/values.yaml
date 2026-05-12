@@ -48,6 +48,11 @@ service:
   type: LoadBalancer
   single: false
 
+tolerations:
+  - key: node.kubernetes.io/disk-pressure
+    operator: Exists
+    effect: NoSchedule
+
 certificatesResolvers:
   le:
     acme:
