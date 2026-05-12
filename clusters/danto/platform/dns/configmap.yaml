@@ -10,7 +10,6 @@ data:
     zone = "x43.io."
     zone_type = "Primary"
     file = "x43.io.zone"
-    enable_dnssec = false
 
   x43.io.zone.tmpl: |
     $ORIGIN x43.io.
