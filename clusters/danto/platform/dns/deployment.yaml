@@ -4,6 +4,7 @@ metadata:
   name: hickory-dns
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: hickory-dns
@@ -12,6 +13,7 @@ spec:
       labels:
         app: hickory-dns
     spec:
+      priorityClassName: system-cluster-critical
       tolerations:
         - key: node.kubernetes.io/disk-pressure
           operator: Exists
@@ -29,6 +31,15 @@ spec:
                 secretKeyRef:
                   name: danto-public-ip
                   key: ipv4
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+              ephemeral-storage: 8Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+              ephemeral-storage: 32Mi
           volumeMounts:
             - name: config
               mountPath: /config
@@ -57,6 +68,15 @@ spec:
               port: dns-tcp
             initialDelaySeconds: 5
             periodSeconds: 10
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+              ephemeral-storage: 16Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+              ephemeral-storage: 64Mi
           volumeMounts:
             - name: config
               mountPath: /config

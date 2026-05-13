@@ -10,6 +10,9 @@ providers:
   kubernetesIngress:
     ingressClass: traefik
 
+deployment:
+  revisionHistoryLimit: 2
+
 ports:
   traefik:
     expose:
@@ -52,6 +55,18 @@ tolerations:
   - key: node.kubernetes.io/disk-pressure
     operator: Exists
     effect: NoSchedule
+
+priorityClassName: system-cluster-critical
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+    ephemeral-storage: 64Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+    ephemeral-storage: 512Mi
 
 certificatesResolvers:
   le:
