@@ -159,7 +159,15 @@ Once Argo has synced the DNS app and port `53` is open, verify DNS:
 
 ## App bootstrap secrets
 
-Create these secrets before syncing `chat`, `cloud`, and `pad` for the first time:
+Generate disposable app bootstrap secrets directly on `danto` before syncing `chat`, `cloud`, and `pad` for the first time:
+
+```bash
+./scripts/ensure-app-secrets.sh --all --restart
+```
+
+The script is idempotent: it creates only missing Kubernetes Secrets, leaves existing secrets unchanged, never prints generated values, and never writes secret material to git.
+
+Use the manual commands below only if you need custom values or an offline setup.
 
 ### Nextcloud (`drive.x43.io`)
 
