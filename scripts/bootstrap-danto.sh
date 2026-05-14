@@ -10,6 +10,9 @@ ARGOCD_VERSION=${ARGOCD_VERSION:-v2.12.6}
 TERRAFORM_MIN_VERSION=${TERRAFORM_MIN_VERSION:-1.5.0}
 K3S_DATA_DIR=${K3S_DATA_DIR:-/srv/k3s/data}
 LOCAL_PATH_STORAGE_DIR=${LOCAL_PATH_STORAGE_DIR:-/srv/k3s/storage}
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=lib/in-cluster-secrets.sh
+source "$SCRIPT_DIR/lib/in-cluster-secrets.sh"
 
 configure_host_resolver() {
   if [ -L /etc/resolv.conf ] \
@@ -83,89 +86,184 @@ ensure_terraform() {
   fi
 }
 
-get_secret_value() {
-  local secret_name=$1
-  local key=$2
-  kubectl -n authentik get secret "$secret_name" -o "jsonpath={.data.${key}}" 2>/dev/null | base64 -d || true
-}
-
 ensure_authentik_secrets() {
-  kubectl create namespace authentik --dry-run=client -o yaml | kubectl apply -f -
+  ensure_namespace authentik
 
-  if ! command -v openssl >/dev/null 2>&1; then
-    echo "openssl not found; installing..." >&2
-    if [ -f /etc/os-release ] && grep -qi '^ID=ubuntu' /etc/os-release; then
-      DEBIAN_FRONTEND=noninteractive apt-get update -y
-      DEBIAN_FRONTEND=noninteractive apt-get install -y openssl
-    elif [ -f /etc/os-release ] && grep -qi '^ID=debian' /etc/os-release; then
-      DEBIAN_FRONTEND=noninteractive apt-get update -y
-      DEBIAN_FRONTEND=noninteractive apt-get install -y openssl
-    else
-      echo "Unsupported OS for automated openssl install. Install openssl manually." >&2
-      exit 1
-    fi
+  local existing_count=0
+  kubectl -n authentik get secret authentik-secrets >/dev/null 2>&1 && existing_count=$((existing_count + 1))
+  kubectl -n authentik get secret authentik-postgresql >/dev/null 2>&1 && existing_count=$((existing_count + 1))
+  kubectl -n authentik get secret authentik-bootstrap >/dev/null 2>&1 && existing_count=$((existing_count + 1))
+
+  if [ "$existing_count" -eq 3 ]; then
+    echo "authentik bootstrap secrets already exist; leaving them unchanged."
+    return
   fi
 
-  local secret_key=""
-  local db_password=""
-  local bootstrap_password=""
-  local bootstrap_token=""
-  local bootstrap_email=""
-
-  if kubectl -n authentik get secret authentik-secrets >/dev/null 2>&1; then
-    secret_key=$(get_secret_value authentik-secrets secret_key)
-    db_password=$(get_secret_value authentik-secrets postgresql_password)
+  if [ "$existing_count" -gt 0 ]; then
+    echo "Partial authentik bootstrap secrets exist; refusing to generate replacements that could desynchronize credentials." >&2
+    echo "Ensure authentik-secrets, authentik-postgresql, and authentik-bootstrap all exist, or delete the partial set before first startup." >&2
+    exit 1
   fi
 
-  if [ -z "$db_password" ] && kubectl -n authentik get secret authentik-postgresql >/dev/null 2>&1; then
-    db_password=$(get_secret_value authentik-postgresql password)
+  local namespace=authentik
+  local service_account=authentik-secret-generator
+  local role_name=authentik-secret-generator
+  local binding_name=authentik-secret-generator
+  local job_name=authentik-secret-generator
+  local bootstrap_email=${AUTHENTIK_BOOTSTRAP_EMAIL:-pierce403@gmail.com}
+
+  kubectl -n "$namespace" delete job "$job_name" --ignore-not-found >/dev/null 2>&1 || true
+
+  cat <<EOF | kubectl apply -f - >/dev/null
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${service_account}
+  namespace: ${namespace}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ${role_name}
+  namespace: ${namespace}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ${binding_name}
+  namespace: ${namespace}
+subjects:
+  - kind: ServiceAccount
+    name: ${service_account}
+    namespace: ${namespace}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ${role_name}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ${job_name}
+  namespace: ${namespace}
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: ${service_account}
+      containers:
+        - name: generate-authentik-secrets
+          image: ${SECRET_GENERATOR_IMAGE}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: BOOTSTRAP_EMAIL
+              value: ${bootstrap_email}
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              api_url="https://kubernetes.default.svc/api/v1/namespaces/\$POD_NAMESPACE/secrets"
+              api_token=\$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              api_ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+              rand_hex() {
+                od -An -N "\$1" -tx1 /dev/urandom | tr -d ' \n'
+              }
+
+              rand_base64() {
+                head -c "\$1" /dev/urandom | base64 | tr -d '\n'
+              }
+
+              emit_data() {
+                key=\$1
+                value=\$2
+                encoded=\$(printf '%s' "\$value" | base64 | tr -d '\n')
+                if [ "\$first" -eq 0 ]; then
+                  printf ',' >> "\$payload"
+                fi
+                printf '"%s":"%s"' "\$key" "\$encoded" >> "\$payload"
+                first=0
+              }
+
+              post_secret() {
+                response=\$(mktemp)
+                code=\$(curl -sS \
+                  --cacert "\$api_ca" \
+                  --header "Authorization: Bearer \$api_token" \
+                  --header "Content-Type: application/json" \
+                  --data-binary "@\$payload" \
+                  --output "\$response" \
+                  --write-out "%{http_code}" \
+                  "\$api_url")
+                case "\$code" in
+                  200|201)
+                    ;;
+                  *)
+                    echo "Kubernetes API returned HTTP \$code while creating a bootstrap secret" >&2
+                    cat "\$response" >&2 || true
+                    exit 1
+                    ;;
+                esac
+                rm -f "\$response"
+              }
+
+              create_secret() {
+                name=\$1
+                shift
+                payload=\$(mktemp)
+                trap 'rm -f "\$payload"' EXIT
+                {
+                  printf '{"apiVersion":"v1","kind":"Secret","metadata":'
+                  printf '{"name":"%s","namespace":"%s"},' "\$name" "\$POD_NAMESPACE"
+                  printf '"type":"Opaque","data":{'
+                } > "\$payload"
+                first=1
+                for pair in "\$@"; do
+                  key=\${pair%%=*}
+                  value=\${pair#*=}
+                  emit_data "\$key" "\$value"
+                done
+                printf '}}\n' >> "\$payload"
+                post_secret
+                rm -f "\$payload"
+                trap - EXIT
+              }
+
+              secret_key=\$(rand_hex 32)
+              db_password=\$(rand_hex 24)
+              bootstrap_password=\$(rand_base64 24)
+              bootstrap_token=\$(rand_hex 32)
+              bootstrap_email=\$BOOTSTRAP_EMAIL
+
+              create_secret authentik-secrets \
+                "secret_key=\$secret_key" \
+                "postgresql_password=\$db_password"
+              create_secret authentik-postgresql \
+                "password=\$db_password"
+              create_secret authentik-bootstrap \
+                "bootstrap_password=\$bootstrap_password" \
+                "bootstrap_token=\$bootstrap_token" \
+                "bootstrap_email=\$bootstrap_email"
+EOF
+
+  if ! kubectl -n "$namespace" wait --for=condition=complete "job/$job_name" --timeout="$SECRET_GENERATOR_TIMEOUT" >/dev/null; then
+    kubectl -n "$namespace" logs "job/$job_name" >&2 || true
+    cleanup_generated_secret_job "$namespace" "$job_name" "$role_name" "$binding_name" "$service_account"
+    return 1
   fi
 
-  if kubectl -n authentik get secret authentik-bootstrap >/dev/null 2>&1; then
-    bootstrap_password=$(get_secret_value authentik-bootstrap bootstrap_password)
-    bootstrap_token=$(get_secret_value authentik-bootstrap bootstrap_token)
-    bootstrap_email=$(get_secret_value authentik-bootstrap bootstrap_email)
-  fi
-
-  secret_key=${AUTHENTIK_SECRET_KEY:-$secret_key}
-  db_password=${AUTHENTIK_DB_PASSWORD:-$db_password}
-  bootstrap_password=${AUTHENTIK_BOOTSTRAP_PASSWORD:-$bootstrap_password}
-  bootstrap_token=${AUTHENTIK_BOOTSTRAP_TOKEN:-$bootstrap_token}
-  bootstrap_email=${AUTHENTIK_BOOTSTRAP_EMAIL:-$bootstrap_email}
-
-  if [ -z "$secret_key" ]; then
-    secret_key=$(openssl rand -hex 32)
-  fi
-  if [ -z "$db_password" ]; then
-    db_password=$(openssl rand -hex 24)
-  fi
-  if [ -z "$bootstrap_password" ]; then
-    bootstrap_password=$(openssl rand -base64 24)
-  fi
-  if [ -z "$bootstrap_token" ]; then
-    bootstrap_token=$(openssl rand -hex 32)
-  fi
-  if [ -z "$bootstrap_email" ]; then
-    bootstrap_email="pierce403@gmail.com"
-  fi
-
-  if ! kubectl -n authentik get secret authentik-secrets >/dev/null 2>&1; then
-    kubectl -n authentik create secret generic authentik-secrets \
-      --from-literal=secret_key="$secret_key" \
-      --from-literal=postgresql_password="$db_password"
-  fi
-
-  if ! kubectl -n authentik get secret authentik-postgresql >/dev/null 2>&1; then
-    kubectl -n authentik create secret generic authentik-postgresql \
-      --from-literal=password="$db_password"
-  fi
-
-  if ! kubectl -n authentik get secret authentik-bootstrap >/dev/null 2>&1; then
-    kubectl -n authentik create secret generic authentik-bootstrap \
-      --from-literal=bootstrap_password="$bootstrap_password" \
-      --from-literal=bootstrap_token="$bootstrap_token" \
-      --from-literal=bootstrap_email="$bootstrap_email"
-  fi
+  cleanup_generated_secret_job "$namespace" "$job_name" "$role_name" "$binding_name" "$service_account"
+  echo "Created missing authentik bootstrap secrets from inside the cluster."
 }
 
 configure_local_path_storage() {

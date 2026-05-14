@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=lib/in-cluster-secrets.sh
+source "$SCRIPT_DIR/lib/in-cluster-secrets.sh"
+
 AUTHENTIK_URL_DEFAULT=${AUTHENTIK_URL:-"https://auth.x43.io"}
 AUTHENTIK_TOKEN_DEFAULT=${AUTHENTIK_TOKEN:-""}
 GOOGLE_CLIENT_ID=${AUTHENTIK_GOOGLE_CLIENT_ID:-""}
@@ -28,7 +32,7 @@ fi
 if [ -z "$AUTHENTIK_TOKEN_DEFAULT" ]; then
   cat <<'MSG' >&2
 No authentik API token found.
-Create one of these secrets in the authentik namespace:
+Provide one of these secrets in the authentik namespace:
   - authentik-terraform (key: token)
   - authentik-bootstrap (key: bootstrap_token)
 MSG
@@ -48,7 +52,7 @@ fi
 if [ -z "$GOOGLE_CLIENT_ID" ] || [ -z "$GOOGLE_CLIENT_SECRET" ]; then
   cat <<'MSG' >&2
 Missing Google OAuth client credentials; Google login will be skipped for this run.
-To enable it, provide AUTHENTIK_GOOGLE_CLIENT_ID and AUTHENTIK_GOOGLE_CLIENT_SECRET, or create the secret:
+To enable it, provide AUTHENTIK_GOOGLE_CLIENT_ID and AUTHENTIK_GOOGLE_CLIENT_SECRET, or import the externally issued credential:
   kubectl -n authentik create secret generic authentik-google-oauth \
     --from-literal=client_id="..." \
     --from-literal=client_secret="..."
@@ -72,51 +76,45 @@ if [ -n "${AUTHENTIK_ADMIN_DOMAIN:-}" ]; then
 fi
 
 # Ensure MeshCentral OIDC secret exists (used by both terraform and MeshCentral)
-if ! kubectl get namespace meshcentral >/dev/null 2>&1; then
-  kubectl create namespace meshcentral
-fi
+ensure_namespace meshcentral
 
-if [ -z "${MESH_OIDC_CLIENT_ID:-}" ] || [ -z "${MESH_OIDC_CLIENT_SECRET:-}" ]; then
-  if kubectl -n meshcentral get secret meshcentral-oidc >/dev/null 2>&1; then
-    MESH_OIDC_CLIENT_ID=$(kubectl -n meshcentral get secret meshcentral-oidc -o jsonpath='{.data.client_id}' | base64 -d)
-    MESH_OIDC_CLIENT_SECRET=$(kubectl -n meshcentral get secret meshcentral-oidc -o jsonpath='{.data.client_secret}' | base64 -d)
-  else
-    if ! command -v openssl >/dev/null 2>&1; then
-      echo "openssl not found; install it to generate MeshCentral OIDC secrets." >&2
-      exit 1
-    fi
-    MESH_OIDC_CLIENT_ID=${MESH_OIDC_CLIENT_ID:-meshcentral}
-    MESH_OIDC_CLIENT_SECRET=$(openssl rand -hex 32)
+if ! kubectl -n meshcentral get secret meshcentral-oidc >/dev/null 2>&1; then
+  MESH_OIDC_CLIENT_ID=${MESH_OIDC_CLIENT_ID:-meshcentral}
+  if [ -n "${MESH_OIDC_CLIENT_SECRET:-}" ]; then
     kubectl -n meshcentral create secret generic meshcentral-oidc \
       --from-literal=client_id="$MESH_OIDC_CLIENT_ID" \
       --from-literal=client_secret="$MESH_OIDC_CLIENT_SECRET"
+  else
+    ensure_generated_secret meshcentral meshcentral-oidc \
+      --literal "client_id=$MESH_OIDC_CLIENT_ID" \
+      --hex client_secret 32
   fi
 fi
+
+MESH_OIDC_CLIENT_ID=$(kubectl -n meshcentral get secret meshcentral-oidc -o jsonpath='{.data.client_id}' | base64 -d)
+MESH_OIDC_CLIENT_SECRET=$(kubectl -n meshcentral get secret meshcentral-oidc -o jsonpath='{.data.client_secret}' | base64 -d)
 
 export TF_VAR_meshcentral_oidc_client_id="$MESH_OIDC_CLIENT_ID"
 export TF_VAR_meshcentral_oidc_client_secret="$MESH_OIDC_CLIENT_SECRET"
 
 # Ensure Nextcloud OIDC secret exists (used by both terraform and Nextcloud user_oidc)
-if ! kubectl get namespace cloud >/dev/null 2>&1; then
-  kubectl create namespace cloud
-fi
+ensure_namespace cloud
 
-if [ -z "${NEXTCLOUD_OIDC_CLIENT_ID:-}" ] || [ -z "${NEXTCLOUD_OIDC_CLIENT_SECRET:-}" ]; then
-  if kubectl -n cloud get secret nextcloud-oidc >/dev/null 2>&1; then
-    NEXTCLOUD_OIDC_CLIENT_ID=$(kubectl -n cloud get secret nextcloud-oidc -o jsonpath='{.data.client_id}' | base64 -d)
-    NEXTCLOUD_OIDC_CLIENT_SECRET=$(kubectl -n cloud get secret nextcloud-oidc -o jsonpath='{.data.client_secret}' | base64 -d)
-  else
-    if ! command -v openssl >/dev/null 2>&1; then
-      echo "openssl not found; install it to generate Nextcloud OIDC secrets." >&2
-      exit 1
-    fi
-    NEXTCLOUD_OIDC_CLIENT_ID=${NEXTCLOUD_OIDC_CLIENT_ID:-nextcloud}
-    NEXTCLOUD_OIDC_CLIENT_SECRET=$(openssl rand -hex 32)
+if ! kubectl -n cloud get secret nextcloud-oidc >/dev/null 2>&1; then
+  NEXTCLOUD_OIDC_CLIENT_ID=${NEXTCLOUD_OIDC_CLIENT_ID:-nextcloud}
+  if [ -n "${NEXTCLOUD_OIDC_CLIENT_SECRET:-}" ]; then
     kubectl -n cloud create secret generic nextcloud-oidc \
       --from-literal=client_id="$NEXTCLOUD_OIDC_CLIENT_ID" \
       --from-literal=client_secret="$NEXTCLOUD_OIDC_CLIENT_SECRET"
+  else
+    ensure_generated_secret cloud nextcloud-oidc \
+      --literal "client_id=$NEXTCLOUD_OIDC_CLIENT_ID" \
+      --hex client_secret 32
   fi
 fi
+
+NEXTCLOUD_OIDC_CLIENT_ID=$(kubectl -n cloud get secret nextcloud-oidc -o jsonpath='{.data.client_id}' | base64 -d)
+NEXTCLOUD_OIDC_CLIENT_SECRET=$(kubectl -n cloud get secret nextcloud-oidc -o jsonpath='{.data.client_secret}' | base64 -d)
 
 export TF_VAR_nextcloud_oidc_client_id="$NEXTCLOUD_OIDC_CLIENT_ID"
 export TF_VAR_nextcloud_oidc_client_secret="$NEXTCLOUD_OIDC_CLIENT_SECRET"

@@ -1,36 +1,16 @@
-# Bootstrap secrets (authentik)
+# Bootstrap Secrets
 
-This repo avoids committing raw secrets. The bootstrap script now generates these automatically; use this doc only if you need to create them manually (offline or custom values).
+This repo avoids committing raw secrets. Generated secrets are created automatically by short-lived Kubernetes Jobs inside the target namespace and stored as Kubernetes Secrets.
 
-## Namespaces
+## Generated Authentik Secrets
 
-```bash
-kubectl create namespace authentik
-```
+`scripts/bootstrap-danto.sh` automatically creates these if missing:
 
-## Authentik secret key + DB password (manual)
+- `authentik-secrets`
+- `authentik-postgresql`
+- `authentik-bootstrap`
 
-Generate a single password and reuse it for both authentik and the embedded Postgres:
-
-```bash
-export AUTHENTIK_SECRET_KEY=$(openssl rand -hex 32)
-export AUTHENTIK_DB_PASSWORD=$(openssl rand -hex 24)
-export AUTHENTIK_BOOTSTRAP_PASSWORD=$(openssl rand -base64 24)
-export AUTHENTIK_BOOTSTRAP_TOKEN=$(openssl rand -hex 32)
-export AUTHENTIK_BOOTSTRAP_EMAIL="pierce403@gmail.com" # optional
-
-kubectl -n authentik create secret generic authentik-secrets \
-  --from-literal=secret_key="$AUTHENTIK_SECRET_KEY" \
-  --from-literal=postgresql_password="$AUTHENTIK_DB_PASSWORD"
-
-kubectl -n authentik create secret generic authentik-postgresql \
-  --from-literal=password="$AUTHENTIK_DB_PASSWORD"
-
-kubectl -n authentik create secret generic authentik-bootstrap \
-  --from-literal=bootstrap_password="$AUTHENTIK_BOOTSTRAP_PASSWORD" \
-  --from-literal=bootstrap_token="$AUTHENTIK_BOOTSTRAP_TOKEN" \
-  --from-literal=bootstrap_email="$AUTHENTIK_BOOTSTRAP_EMAIL"
-```
+The generated DB password is reused for both authentik and the embedded Postgres. Set `AUTHENTIK_BOOTSTRAP_EMAIL` before running the script if the bootstrap admin email should differ from the default.
 
 Notes:
 - `authentik-secrets` is referenced by `clusters/danto/platform/authentik/values.yaml` via env vars.
@@ -38,18 +18,18 @@ Notes:
 - `authentik-bootstrap` seeds the admin bootstrap password/token on first startup and must exist before the first authentik pod starts.
 - If you later move to an external DB, replace these with your external DB credentials and disable the embedded Postgres.
 
-## Authentik Terraform API token (post-setup, manual)
+## Authentik Terraform API token
 
-After authentik is running, you can reuse the bootstrap token (API intent) or create a separate API token and store it as a secret:
+After authentik is running, Terraform can reuse the generated bootstrap token. If you want a separate API token, import that Authentik-issued token as a Kubernetes Secret:
 
 ```bash
 kubectl -n authentik create secret generic authentik-terraform \
   --from-literal=token="YOUR_AUTHENTIK_API_TOKEN"
 ```
 
-## Google OAuth credentials (manual)
+## Google OAuth Credentials
 
-Create this secret for Terraform to configure the Google OAuth source:
+Google issues these credentials; this repo cannot generate them. Import them for Terraform to configure the Google OAuth source:
 
 ```bash
 kubectl -n authentik create secret generic authentik-google-oauth \
@@ -57,9 +37,9 @@ kubectl -n authentik create secret generic authentik-google-oauth \
   --from-literal=client_secret="YOUR_GOOGLE_CLIENT_SECRET"
 ```
 
-## Authoritative DNS public IP
+## Authoritative DNS Public IP
 
-Hickory DNS renders the `x43.io` zone from this secret:
+Hickory DNS renders the `x43.io` zone from this imported value:
 
 ```bash
 kubectl get namespace dns >/dev/null 2>&1 || kubectl create namespace dns
@@ -69,7 +49,7 @@ kubectl -n dns create secret generic danto-public-ip \
 
 ## Argo CD Notifications GitHub App
 
-Create a GitHub App with repository permission **Commit statuses: Read and write**, install it only on this repo, then store the app credentials in Argo CD:
+Create a GitHub App with repository permission **Commit statuses: Read and write**, install it only on this repo, then import the GitHub-issued app credentials in Argo CD:
 
 ```bash
 kubectl -n argocd create secret generic argocd-notifications-secret \

@@ -71,7 +71,14 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/www/html
+            - name: nextcloud-oidc
+              mountPath: /run/secrets/nextcloud-oidc
+              readOnly: true
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: cloud-data
+        - name: nextcloud-oidc
+          secret:
+            secretName: nextcloud-oidc
+            optional: true

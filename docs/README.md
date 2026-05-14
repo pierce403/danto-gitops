@@ -2,7 +2,7 @@
 
 Short operational notes for bootstrapping and maintenance.
 
-- `bootstrap-secrets.md`: manual secret creation steps (used if you need custom values or offline setup).
+- `bootstrap-secrets.md`: automatic generated secret flow plus the few externally issued values that must be imported.
 
 Notes:
 - The primary bootstrap flow is in the root `README.md`.
