@@ -9,6 +9,8 @@ locals {
   mesh_host = "https://mesh.${var.domain}"
   pad_host = "https://pad.${var.domain}"
   pad_sandbox_host = "https://pad-sandbox.${var.domain}"
+  google_oauth_enabled = var.google_client_id != "" && var.google_client_secret != ""
+  cloud_oidc_redirect_uri = "${local.cloud_host}/apps/user_oidc/code"
   mesh_oidc_issuer = "https://auth.${var.domain}/application/o/meshcentral-oidc/"
   mesh_oidc_redirect_uri = "https://mesh.${var.domain}/auth-oidc-callback"
   admin_policy_expression = var.admin_domain != "" ? "return request.user and (request.user.email == \\\"${var.admin_email}\\\" or request.user.email.endswith(\\\"@${var.admin_domain}\\\"))" : "return request.user and request.user.email == \\\"${var.admin_email}\\\""
@@ -54,6 +56,7 @@ resource "authentik_policy_expression" "admins_only" {
 }
 
 resource "authentik_source_oauth" "google" {
+  count               = local.google_oauth_enabled ? 1 : 0
   name                = "Google"
   slug                = "google"
   provider_type       = "google"
@@ -65,13 +68,15 @@ resource "authentik_source_oauth" "google" {
 }
 
 resource "authentik_stage_source" "google" {
+  count  = local.google_oauth_enabled ? 1 : 0
   name   = "google-source"
-  source = authentik_source_oauth.google.id
+  source = authentik_source_oauth.google[0].id
 }
 
 resource "authentik_flow_stage_binding" "google_default_auth" {
+  count  = local.google_oauth_enabled ? 1 : 0
   target = data.authentik_flow.default_authentication.uuid
-  stage  = authentik_stage_source.google.id
+  stage  = authentik_stage_source.google[0].id
   order  = 0
 }
 
@@ -125,6 +130,64 @@ resource "authentik_application" "cloud" {
   name              = "Nextcloud"
   slug              = "drive"
   protocol_provider = authentik_provider_proxy.cloud.id
+  meta_launch_url   = local.cloud_host
+  open_in_new_tab   = true
+}
+
+resource "authentik_provider_oauth2" "cloud_oidc" {
+  name                       = "Nextcloud OIDC"
+  client_id                  = var.nextcloud_oidc_client_id
+  client_secret              = var.nextcloud_oidc_client_secret
+  authorization_flow         = data.authentik_flow.default_authorization.id
+  invalidation_flow          = data.authentik_flow.default_invalidation.id
+  include_claims_in_id_token = true
+  sub_mode                   = "user_email"
+  property_mappings = [
+    authentik_property_mapping_provider_scope.nextcloud_openid.id,
+    authentik_property_mapping_provider_scope.nextcloud_email.id,
+    authentik_property_mapping_provider_scope.nextcloud_profile.id,
+  ]
+
+  allowed_redirect_uris = [
+    {
+      matching_mode = "strict"
+      url           = local.cloud_oidc_redirect_uri
+    }
+  ]
+}
+
+resource "authentik_property_mapping_provider_scope" "nextcloud_openid" {
+  name       = "nextcloud-openid"
+  scope_name = "openid"
+  expression = "return {}"
+}
+
+resource "authentik_property_mapping_provider_scope" "nextcloud_email" {
+  name       = "nextcloud-email"
+  scope_name = "email"
+  expression = <<EOF
+return {
+  "email": request.user.email,
+  "email_verified": True,
+}
+EOF
+}
+
+resource "authentik_property_mapping_provider_scope" "nextcloud_profile" {
+  name       = "nextcloud-profile"
+  scope_name = "profile"
+  expression = <<EOF
+return {
+  "name": request.user.name,
+  "preferred_username": request.user.username,
+}
+EOF
+}
+
+resource "authentik_application" "cloud_oidc" {
+  name              = "Nextcloud OIDC"
+  slug              = "nextcloud-oidc"
+  protocol_provider = authentik_provider_oauth2.cloud_oidc.id
   meta_launch_url   = local.cloud_host
   open_in_new_tab   = true
 }
@@ -288,6 +351,12 @@ resource "authentik_policy_binding" "chat_admins" {
 
 resource "authentik_policy_binding" "cloud_admins" {
   target = authentik_application.cloud.uuid
+  policy = authentik_policy_expression.admins_only.id
+  order  = 0
+}
+
+resource "authentik_policy_binding" "cloud_oidc_admins" {
+  target = authentik_application.cloud_oidc.uuid
   policy = authentik_policy_expression.admins_only.id
   order  = 0
 }

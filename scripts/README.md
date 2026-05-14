@@ -6,7 +6,8 @@ Utility scripts for bootstrapping and validating the cluster.
 - `migrate-storage-to-srv.sh`: root-only ops script for moving existing Docker and k3s runtime state from `/var/lib` to `/srv`.
 - `ensure-app-secrets.sh`: generate missing disposable app bootstrap secrets directly in Kubernetes without printing values or writing them to git.
 - `authentik-terraform.sh`: run Terraform to manage authentik providers/apps (expects API token via secret or env vars).
-- `authentik-terraform.sh` also reads Google OAuth credentials from `authentik-google-oauth` and creates `meshcentral-oidc` if missing.
+- `authentik-terraform.sh` also reads Google OAuth credentials from `authentik-google-oauth`, skips Google when the secret is missing, and creates `meshcentral-oidc` plus `cloud/nextcloud-oidc` if missing.
+- `configure-nextcloud-oidc.sh`: install/configure Nextcloud `user_oidc` against authentik using `cloud/nextcloud-oidc`.
 - `status.sh`: quick cluster/Argo status checks.
 - `check-authentik-forwardauth.sh`: validate the authentik forward-auth endpoint from inside the cluster.
 - `check-dns.sh`: validate authoritative DNS answers and public delegation for `x43.io`.

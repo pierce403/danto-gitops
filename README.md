@@ -45,6 +45,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
   - Generates authentik bootstrap secrets if missing (headless).
 - `scripts/status.sh`: quick cluster/Argo status checks.
 - `scripts/authentik-terraform.sh`: applies Git-managed authentik providers/apps via Terraform.
+- `scripts/configure-nextcloud-oidc.sh`: configures the Nextcloud `user_oidc` app to use authentik.
 - `scripts/check-authentik-forwardauth.sh`: validates the forward-auth endpoint is reachable inside the cluster.
 - `scripts/check-dns.sh`: checks the authoritative `x43.io` DNS server and delegation.
 - `scripts/check-endpoints.sh`: sanity checks the public HTTPS endpoints for Argo CD, MeshCentral, Mattermost, Nextcloud, CryptPad, Hypersnap, and Grafana.
@@ -90,7 +91,7 @@ kubectl -n authentik create secret generic authentik-terraform \
 
 ### Apply Terraform
 
-Run from a machine with `kubectl` + `terraform` configured (not from `danto`):
+Run from a machine with `kubectl` + `terraform` configured:
 
 ```bash
 ./scripts/authentik-terraform.sh
@@ -103,7 +104,8 @@ Notes:
 - Install Terraform on your workstation via your package manager or the HashiCorp install docs.
 - On Ubuntu, `scripts/bootstrap-danto.sh` installs/upgrades Terraform automatically; on other OSes, install it manually.
 - If the server has no outbound network access, Terraform install will fail; install it manually in that case.
-- `scripts/authentik-terraform.sh` also creates the `meshcentral-oidc` secret if missing.
+- `scripts/authentik-terraform.sh` also creates the `meshcentral-oidc` and `cloud/nextcloud-oidc` secrets if missing.
+- If `authentik-google-oauth` is missing, Terraform skips the Google source for that run; create the secret and rerun to enable Google login.
 - Admin access is restricted by an authentik policy to `admin_email` (default: `pierce403@gmail.com`).
 
 ## Argo GitHub Commit Statuses
@@ -156,6 +158,18 @@ Once Argo has synced the DNS app and port `53` is open, verify DNS:
 - Store its credentials in `authentik-google-oauth` (see “Google OAuth credentials” below).
 - Terraform wires Google as the default login source and creates the Authentik apps/providers.
 - Default policy: restrict access to `admin_email` (default: `pierce403@gmail.com`) or optional admin domain.
+
+## Nextcloud Authentik Login
+
+Nextcloud is protected by the shared Traefik forward-auth middleware, but that only gates access; Nextcloud still needs its own OIDC client to create a Nextcloud session.
+
+After `scripts/authentik-terraform.sh` has created the authentik `Nextcloud OIDC` provider and the `cloud/nextcloud-oidc` secret, configure Nextcloud:
+
+```bash
+./scripts/configure-nextcloud-oidc.sh
+```
+
+The script installs/enables `user_oidc`, configures the `authentik` provider, and disables multiple user backends so `/login` redirects straight into the OIDC flow. Use `https://drive.x43.io/login?direct=1` if you need the local admin login.
 
 ## App bootstrap secrets
 

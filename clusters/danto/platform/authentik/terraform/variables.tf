@@ -20,12 +20,14 @@ variable "google_client_id" {
   description = "Google OAuth client ID"
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "google_client_secret" {
   description = "Google OAuth client secret"
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "meshcentral_oidc_client_id" {
@@ -35,6 +37,18 @@ variable "meshcentral_oidc_client_id" {
 
 variable "meshcentral_oidc_client_secret" {
   description = "MeshCentral OIDC client secret"
+  type        = string
+  sensitive   = true
+}
+
+variable "nextcloud_oidc_client_id" {
+  description = "Nextcloud OIDC client ID"
+  type        = string
+  default     = "nextcloud"
+}
+
+variable "nextcloud_oidc_client_secret" {
+  description = "Nextcloud OIDC client secret"
   type        = string
   sensitive   = true
 }

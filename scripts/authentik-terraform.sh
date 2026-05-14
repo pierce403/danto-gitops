@@ -47,17 +47,15 @@ fi
 
 if [ -z "$GOOGLE_CLIENT_ID" ] || [ -z "$GOOGLE_CLIENT_SECRET" ]; then
   cat <<'MSG' >&2
-Missing Google OAuth client credentials.
-Provide AUTHENTIK_GOOGLE_CLIENT_ID and AUTHENTIK_GOOGLE_CLIENT_SECRET, or
-create the secret:
+Missing Google OAuth client credentials; Google login will be skipped for this run.
+To enable it, provide AUTHENTIK_GOOGLE_CLIENT_ID and AUTHENTIK_GOOGLE_CLIENT_SECRET, or create the secret:
   kubectl -n authentik create secret generic authentik-google-oauth \
     --from-literal=client_id="..." \
     --from-literal=client_secret="..."
 MSG
-  exit 1
 fi
 
-if ! kubectl -n authentik get secret authentik-google-oauth >/dev/null 2>&1; then
+if [ -n "$GOOGLE_CLIENT_ID" ] && [ -n "$GOOGLE_CLIENT_SECRET" ] && ! kubectl -n authentik get secret authentik-google-oauth >/dev/null 2>&1; then
   kubectl -n authentik create secret generic authentik-google-oauth \
     --from-literal=client_id="$GOOGLE_CLIENT_ID" \
     --from-literal=client_secret="$GOOGLE_CLIENT_SECRET"
@@ -97,6 +95,31 @@ fi
 
 export TF_VAR_meshcentral_oidc_client_id="$MESH_OIDC_CLIENT_ID"
 export TF_VAR_meshcentral_oidc_client_secret="$MESH_OIDC_CLIENT_SECRET"
+
+# Ensure Nextcloud OIDC secret exists (used by both terraform and Nextcloud user_oidc)
+if ! kubectl get namespace cloud >/dev/null 2>&1; then
+  kubectl create namespace cloud
+fi
+
+if [ -z "${NEXTCLOUD_OIDC_CLIENT_ID:-}" ] || [ -z "${NEXTCLOUD_OIDC_CLIENT_SECRET:-}" ]; then
+  if kubectl -n cloud get secret nextcloud-oidc >/dev/null 2>&1; then
+    NEXTCLOUD_OIDC_CLIENT_ID=$(kubectl -n cloud get secret nextcloud-oidc -o jsonpath='{.data.client_id}' | base64 -d)
+    NEXTCLOUD_OIDC_CLIENT_SECRET=$(kubectl -n cloud get secret nextcloud-oidc -o jsonpath='{.data.client_secret}' | base64 -d)
+  else
+    if ! command -v openssl >/dev/null 2>&1; then
+      echo "openssl not found; install it to generate Nextcloud OIDC secrets." >&2
+      exit 1
+    fi
+    NEXTCLOUD_OIDC_CLIENT_ID=${NEXTCLOUD_OIDC_CLIENT_ID:-nextcloud}
+    NEXTCLOUD_OIDC_CLIENT_SECRET=$(openssl rand -hex 32)
+    kubectl -n cloud create secret generic nextcloud-oidc \
+      --from-literal=client_id="$NEXTCLOUD_OIDC_CLIENT_ID" \
+      --from-literal=client_secret="$NEXTCLOUD_OIDC_CLIENT_SECRET"
+  fi
+fi
+
+export TF_VAR_nextcloud_oidc_client_id="$NEXTCLOUD_OIDC_CLIENT_ID"
+export TF_VAR_nextcloud_oidc_client_secret="$NEXTCLOUD_OIDC_CLIENT_SECRET"
 
 cd clusters/danto/platform/authentik/terraform
 terraform init
