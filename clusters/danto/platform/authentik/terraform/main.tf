@@ -75,7 +75,7 @@ resource "authentik_stage_source" "google" {
 
 resource "authentik_flow_stage_binding" "google_default_auth" {
   count  = local.google_oauth_enabled ? 1 : 0
-  target = data.authentik_flow.default_authentication.uuid
+  target = data.authentik_flow.default_authentication.id
   stage  = authentik_stage_source.google[0].id
   order  = 0
 }
