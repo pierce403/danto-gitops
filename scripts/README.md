@@ -8,6 +8,7 @@ Utility scripts for bootstrapping and validating the cluster.
 - `authentik-terraform.sh`: run Terraform to manage authentik providers/apps (expects API token via secret or env vars).
 - `authentik-terraform.sh` also reads Google OAuth credentials from `authentik-google-oauth`, skips Google when the secret is missing, and ensures generated `meshcentral-oidc` plus `cloud/nextcloud-oidc` secrets exist.
 - `configure-nextcloud-oidc.sh`: install/configure Nextcloud `user_oidc` against authentik using `cloud/nextcloud-oidc`.
+- `configure-github-webhook.sh`: generate Argo CD's GitHub webhook shared secret inside the cluster, patch `argocd-secret` from an in-cluster Job, and optionally create/update the GitHub webhook from a temporary token.
 - `status.sh`: quick cluster/Argo status checks.
 - `check-authentik-forwardauth.sh`: validate the authentik forward-auth endpoint from inside the cluster.
 - `check-dns.sh`: validate authoritative DNS answers and public delegation for `x43.io`.
@@ -17,4 +18,5 @@ Notes:
 - Scripts are intended to be non-interactive and idempotent where possible.
 - On `danto`, only run setup/ops scripts; do not modify or push git changes.
 - GitHub Actions `danto-smoke` runs `check-dns.sh` plus a public Argo endpoint check without any secrets.
-- Argo CD Notifications reports sync results back to GitHub commit statuses when `argocd-notifications-secret` exists.
+- Argo CD webhooks make deploy-on-push immediate once `configure-github-webhook.sh --github` has been run.
+- Argo CD Notifications reports sync results back to GitHub commit statuses when the optional `argocd-notifications-secret` exists.

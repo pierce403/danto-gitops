@@ -7,7 +7,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - `bootstrap/` one-time Argo root app
 - `clusters/danto/argocd/` Argo projects + applications (app-of-apps)
 - `clusters/danto/platform/` ingress, auth, and authoritative DNS bits
-- `clusters/danto/apps/` MeshCentral, Mattermost (`chat`), Nextcloud (`cloud`), CryptPad (`pad`), Hypersnap + future apps
+- `clusters/danto/apps/` MeshCentral, Mattermost (`chat`), Nextcloud (`cloud`), CryptPad (`pad`) + future apps
 
 ## Prereqs
 
@@ -46,9 +46,10 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 - `scripts/status.sh`: quick cluster/Argo status checks.
 - `scripts/authentik-terraform.sh`: applies Git-managed authentik providers/apps via Terraform.
 - `scripts/configure-nextcloud-oidc.sh`: configures the Nextcloud `user_oidc` app to use authentik.
+- `scripts/configure-github-webhook.sh`: generates Argo CD's GitHub webhook secret inside the cluster, patches Argo from an in-cluster Job, and can configure the GitHub webhook from a temporary token.
 - `scripts/check-authentik-forwardauth.sh`: validates the forward-auth endpoint is reachable inside the cluster.
 - `scripts/check-dns.sh`: checks the authoritative `x43.io` DNS server and delegation.
-- `scripts/check-endpoints.sh`: sanity checks the public HTTPS endpoints for Argo CD, MeshCentral, Mattermost, Nextcloud, CryptPad, Hypersnap, and Grafana.
+- `scripts/check-endpoints.sh`: sanity checks the public HTTPS endpoints for Argo CD, MeshCentral, Mattermost, Nextcloud, and CryptPad.
 - `scripts/migrate-storage-to-srv.sh`: root-only migration helper for moving existing Docker and k3s runtime state from `/var/lib` to `/srv`.
 
 ## Storage migration
@@ -108,11 +109,31 @@ Notes:
 - If `authentik-google-oauth` is missing, Terraform skips the Google source for that run; import the Google-issued secret and rerun to enable Google login.
 - Admin access is restricted by an authentik policy to `admin_email` (default: `pierce403@gmail.com`).
 
+## Argo GitHub Webhook
+
+Argo CD still polls Git periodically, but GitHub webhooks make deploy-on-push immediate. The webhook shared secret is generated automatically inside the cluster and copied into `argocd-secret` by a short-lived in-cluster Job:
+
+```bash
+./scripts/configure-github-webhook.sh
+```
+
+To configure or update the webhook in GitHub, run the same script with a temporary token that can manage repository webhooks:
+
+```bash
+GITHUB_TOKEN="YOUR_TEMPORARY_GITHUB_TOKEN" ./scripts/configure-github-webhook.sh --github
+```
+
+Notes:
+- The payload URL is `https://argo.x43.io/api/webhook`.
+- The GitHub token is stored only in a temporary Kubernetes Secret for the setup Job and is deleted after the Job finishes.
+- The Argo UI remains behind authentik; only `/api/webhook` has a narrow unauthenticated Traefik route.
+- Rotate the shared secret with `./scripts/configure-github-webhook.sh --rotate --github`.
+
 ## Argo GitHub Commit Statuses
 
-Argo CD Notifications is configured to post GitHub commit statuses for each Argo Application when a commit starts syncing, syncs successfully, fails, or becomes degraded. This answers whether a pushed Git revision was actually consumed by Argo, because the status is emitted from Argo after it observes the application operation.
+Argo CD Notifications can optionally post GitHub commit statuses for each Argo Application when a commit starts syncing, syncs successfully, fails, or becomes degraded. This is separate from webhooks: deploy-on-push does not require a GitHub App private key.
 
-Create a GitHub App with repository permission **Commit statuses: Read and write**, install it only on this repo, then import the GitHub-issued values on danto:
+If you want outbound commit statuses, create a GitHub App with repository permission **Commit statuses: Read and write**, install it only on this repo, then import the GitHub-issued values on danto:
 
 ```bash
 kubectl -n argocd create secret generic argocd-notifications-secret \
@@ -124,6 +145,7 @@ kubectl -n argocd create secret generic argocd-notifications-secret \
 Notes:
 - The GitHub App does not need repository contents access.
 - The private key is stored only in the cluster Secret, never in this repo.
+- This private key is only for outbound GitHub commit statuses, not for receiving push webhooks.
 - Status contexts look like `argocd/platform-dns`, `argocd/apps-cloud`, and `argocd/danto-root`.
 
 ## Authoritative DNS

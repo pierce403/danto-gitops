@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
   - argocd-cmd-params-cm.yaml
   - notifications.yaml
+  - webhook-ingress.yaml
   - ingress.yaml

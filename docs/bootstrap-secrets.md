@@ -47,7 +47,25 @@ kubectl -n dns create secret generic danto-public-ip \
   --from-literal=ipv4="YOUR_DANTO_PUBLIC_IPV4"
 ```
 
+## Argo CD GitHub Webhook
+
+Run this on danto to create the Argo CD GitHub webhook shared secret automatically inside the cluster and copy it into `argocd-secret` from an in-cluster Job:
+
+```bash
+./scripts/configure-github-webhook.sh
+```
+
+To configure the matching GitHub repository webhook, provide a temporary GitHub token with repository webhook write permission:
+
+```bash
+GITHUB_TOKEN="YOUR_TEMPORARY_GITHUB_TOKEN" ./scripts/configure-github-webhook.sh --github
+```
+
+The generated shared secret never appears in Git or in the host shell. The temporary GitHub token is placed into a short-lived setup Secret and deleted after the setup Job finishes.
+
 ## Argo CD Notifications GitHub App
+
+This is optional and only needed for outbound GitHub commit statuses. Deploy-on-push uses the webhook above and does not require a GitHub App private key.
 
 Create a GitHub App with repository permission **Commit statuses: Read and write**, install it only on this repo, then import the GitHub-issued app credentials in Argo CD:
 
