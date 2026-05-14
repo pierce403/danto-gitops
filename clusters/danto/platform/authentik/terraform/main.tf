@@ -45,6 +45,10 @@ data "authentik_user" "bootstrap_admin" {
   username = "akadmin"
 }
 
+data "authentik_certificate_key_pair" "self_signed" {
+  name = "authentik Self-signed Certificate"
+}
+
 resource "authentik_group" "admins" {
   name         = "admins"
   is_superuser = true
@@ -137,6 +141,7 @@ resource "authentik_provider_oauth2" "cloud_oidc" {
   name                       = "Nextcloud OIDC"
   client_id                  = var.nextcloud_oidc_client_id
   client_secret              = var.nextcloud_oidc_client_secret
+  signing_key                = data.authentik_certificate_key_pair.self_signed.id
   authorization_flow         = data.authentik_flow.default_authorization.id
   invalidation_flow          = data.authentik_flow.default_invalidation.id
   include_claims_in_id_token = true
@@ -249,6 +254,7 @@ resource "authentik_provider_oauth2" "mesh_oidc" {
   name               = "MeshCentral OIDC"
   client_id          = var.meshcentral_oidc_client_id
   client_secret      = var.meshcentral_oidc_client_secret
+  signing_key        = data.authentik_certificate_key_pair.self_signed.id
   authorization_flow = data.authentik_flow.default_authorization.id
   invalidation_flow  = data.authentik_flow.default_invalidation.id
   sub_mode           = "user_email"
