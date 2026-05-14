@@ -70,7 +70,7 @@ resource "authentik_source_oauth" "google" {
 resource "authentik_stage_source" "google" {
   count  = local.google_oauth_enabled ? 1 : 0
   name   = "google-source"
-  source = authentik_source_oauth.google[0].id
+  source = authentik_source_oauth.google[0].uuid
 }
 
 resource "authentik_flow_stage_binding" "google_default_auth" {
