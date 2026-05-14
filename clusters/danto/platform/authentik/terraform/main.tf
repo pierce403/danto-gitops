@@ -10,6 +10,7 @@ locals {
   pad_host = "https://pad.${var.domain}"
   pad_sandbox_host = "https://pad-sandbox.${var.domain}"
   google_oauth_enabled = var.google_client_id != "" && var.google_client_secret != ""
+  google_source_uuids = local.google_oauth_enabled ? [authentik_source_oauth.google[0].uuid] : []
   cloud_oidc_redirect_uri = "${local.cloud_host}/apps/user_oidc/code"
   mesh_oidc_issuer = "https://auth.${var.domain}/application/o/meshcentral-oidc/"
   mesh_oidc_redirect_uri = "https://mesh.${var.domain}/auth-oidc-callback"
@@ -67,17 +68,15 @@ resource "authentik_source_oauth" "google" {
   user_matching_mode  = "email_link"
 }
 
-resource "authentik_stage_source" "google" {
-  count  = local.google_oauth_enabled ? 1 : 0
-  name   = "google-source"
-  source = authentik_source_oauth.google[0].uuid
-}
-
-resource "authentik_flow_stage_binding" "google_default_auth" {
-  count  = local.google_oauth_enabled ? 1 : 0
-  target = data.authentik_flow.default_authentication.id
-  stage  = authentik_stage_source.google[0].id
-  order  = 0
+resource "authentik_stage_identification" "default_authentication_identification" {
+  name                      = "default-authentication-identification"
+  user_fields               = ["email", "username"]
+  sources                   = local.google_source_uuids
+  case_insensitive_matching = true
+  enable_remember_me        = false
+  pretend_user_exists       = true
+  show_matched_user         = true
+  show_source_labels        = false
 }
 
 resource "authentik_provider_proxy" "argo" {
