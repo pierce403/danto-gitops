@@ -13,7 +13,7 @@ GitOps repo for the danto cluster using Argo CD and an app-of-apps layout.
 
 - DNS: `x43.io` nameservers are `x43ns1.deanpierce.net` and `x43ns2.deanpierce.net`, both pointing at danto's public IPv4
 - Storage: k3s runtime data should live on `/srv/k3s/data`, and k3s local-path PVC data should live on `/srv/k3s/storage`, not on the root filesystem.
-- Firewall: allow `22`, `53/tcp`, `53/udp`, `443`, `3382/udp`, and `3383/tcp`
+- Firewall: allow `22`, `53/tcp`, `53/udp`, and `443`
 - If using k3s, disable the built-in Traefik (`--disable traefik`) before installing this stack
 - On danto, `/etc/resolv.conf` should not point at the systemd-resolved stub (`127.0.0.53`) once ServiceLB owns host port `53`; use `/run/systemd/resolve/resolv.conf` so containerd image pulls keep using upstream DNS.
 
@@ -122,7 +122,7 @@ kubectl -n argocd create secret generic argocd-notifications-secret \
 Notes:
 - The GitHub App does not need repository contents access.
 - The private key is stored only in the cluster Secret, never in this repo.
-- Status contexts look like `argocd/platform-dns`, `argocd/apps-hypersnap`, and `argocd/danto-root`.
+- Status contexts look like `argocd/platform-dns`, `argocd/apps-cloud`, and `argocd/danto-root`.
 
 ## Authoritative DNS
 
@@ -202,20 +202,6 @@ Notes:
 - Mattermost open signup is enabled for initial account creation and remains behind authentik forward-auth.
 - CryptPad still has its own first-run onboarding flow; grab the setup token from the `pad` pod logs on initial boot to create the internal admin account.
 
-## Hypersnap
-
-Hypersnap runs as a stateful Farcaster/Snapchain-derived node using `farcasterorg/hypersnap:latest`.
-
-- HTTP API: `https://snap.x43.io/v2/farcaster/*` via Traefik websecure and authentik forward-auth.
-- Grafana: `https://grafana.x43.io/` via Traefik websecure and authentik forward-auth.
-- Node gossip: public `3382/udp` via Traefik `IngressRouteUDP`.
-- gRPC: public `3383/tcp` via Traefik `IngressRouteTCP`.
-- Storage: `hypersnap-data` PVC requests `2Ti`; upstream documents `1.5TB` free storage as the minimum.
-- Runtime resources request `4` CPUs and `16Gi` memory.
-- Metrics flow: Hypersnap emits StatsD metrics to `hypersnap-statsd`; Grafana provisions the upstream Hypersnap/Snapchain dashboard with a Graphite datasource backed by that StatsD container.
-
-The HTTP API is authenticated because this repo requires every web-exposed service to use the shared authentik forward-auth middleware. The raw gossip and gRPC node ports are not browser endpoints and are exposed through dedicated Traefik entrypoints.
-
 DNS is self-hosted for `x43.io` through Hickory DNS. A CNAME does not delegate DNS control; authoritative control comes from NS delegation. `x43ns1.deanpierce.net` and `x43ns2.deanpierce.net` currently point at the same danto IP, which is acceptable for experimentation but not resilient.
 
 ## Notes
@@ -223,7 +209,6 @@ DNS is self-hosted for `x43.io` through Hickory DNS. A CNAME does not delegate D
 - Traefik uses TLS-ALPN-01 (443 only) with persistent ACME storage; the HTTP (web) entrypoint is disabled.
 - Traefik exposes authoritative DNS on `53/tcp` and `53/udp` for Hickory DNS.
 - K3s ServiceLB claims host port `53` for Traefik DNS. Keep danto's host resolver off the `127.0.0.53` stub, or local image pulls can fail while DNS is exposed.
-- Traefik also exposes dedicated Hypersnap node entrypoints on `3382/udp` and `3383/tcp`.
 - Authentik cookie domain is set to `.x43.io` for sibling subdomains.
 - For SSO across sibling subdomains, ensure your authentik forward-auth provider/outpost is configured for `.x43.io` to avoid redirect loops.
 - Authentik uses the chart’s embedded Postgres for v1. Upgrade later to external DB (and Redis if you add it).
@@ -237,8 +222,6 @@ DNS is self-hosted for `x43.io` through Hickory DNS. A CNAME does not delegate D
 - `https://mesh.x43.io/` MeshCentral
 - `https://chat.x43.io/` Mattermost
 - `https://drive.x43.io/` Nextcloud
-- `https://snap.x43.io/v2/farcaster/` Hypersnap HTTP API
-- `https://grafana.x43.io/` Hypersnap/Snapchain metrics dashboard
 - `https://pad.x43.io/` CryptPad
 - `https://pad-sandbox.x43.io/` CryptPad sandbox companion host
 

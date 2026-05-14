@@ -7,6 +7,5 @@ resources:
   - platform-argo-ingress.yaml
   - apps-chat.yaml
   - apps-cloud.yaml
-  - apps-hypersnap.yaml
   - apps-meshcentral.yaml
   - apps-pad.yaml

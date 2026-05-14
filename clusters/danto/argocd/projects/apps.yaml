@@ -12,8 +12,6 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: cloud
       server: https://kubernetes.default.svc
-    - namespace: hypersnap
-      server: https://kubernetes.default.svc
     - namespace: meshcentral
       server: https://kubernetes.default.svc
     - namespace: pad

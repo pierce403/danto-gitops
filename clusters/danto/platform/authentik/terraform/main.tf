@@ -6,8 +6,6 @@ locals {
   argo_host = "https://argo.${var.domain}"
   chat_host = "https://chat.${var.domain}"
   cloud_host = "https://drive.${var.domain}"
-  grafana_host = "https://grafana.${var.domain}"
-  hypersnap_host = "https://snap.${var.domain}"
   mesh_host = "https://mesh.${var.domain}"
   pad_host = "https://pad.${var.domain}"
   pad_sandbox_host = "https://pad-sandbox.${var.domain}"
@@ -128,42 +126,6 @@ resource "authentik_application" "cloud" {
   slug              = "drive"
   protocol_provider = authentik_provider_proxy.cloud.id
   meta_launch_url   = local.cloud_host
-  open_in_new_tab   = true
-}
-
-resource "authentik_provider_proxy" "grafana" {
-  name                = "Grafana"
-  external_host       = local.grafana_host
-  mode                = "forward_single"
-  authentication_flow = data.authentik_flow.default_authentication.id
-  authorization_flow  = data.authentik_flow.default_authorization.id
-  invalidation_flow   = data.authentik_flow.default_invalidation.id
-  cookie_domain       = ".${var.domain}"
-}
-
-resource "authentik_application" "grafana" {
-  name              = "Grafana"
-  slug              = "grafana"
-  protocol_provider = authentik_provider_proxy.grafana.id
-  meta_launch_url   = local.grafana_host
-  open_in_new_tab   = true
-}
-
-resource "authentik_provider_proxy" "hypersnap" {
-  name                = "Hypersnap"
-  external_host       = local.hypersnap_host
-  mode                = "forward_single"
-  authentication_flow = data.authentik_flow.default_authentication.id
-  authorization_flow  = data.authentik_flow.default_authorization.id
-  invalidation_flow   = data.authentik_flow.default_invalidation.id
-  cookie_domain       = ".${var.domain}"
-}
-
-resource "authentik_application" "hypersnap" {
-  name              = "Hypersnap"
-  slug              = "hypersnap"
-  protocol_provider = authentik_provider_proxy.hypersnap.id
-  meta_launch_url   = local.hypersnap_host
   open_in_new_tab   = true
 }
 
@@ -297,16 +259,6 @@ resource "authentik_outpost_provider_attachment" "embedded_cloud" {
   protocol_provider = authentik_provider_proxy.cloud.id
 }
 
-resource "authentik_outpost_provider_attachment" "embedded_grafana" {
-  outpost           = data.authentik_outpost.embedded.id
-  protocol_provider = authentik_provider_proxy.grafana.id
-}
-
-resource "authentik_outpost_provider_attachment" "embedded_hypersnap" {
-  outpost           = data.authentik_outpost.embedded.id
-  protocol_provider = authentik_provider_proxy.hypersnap.id
-}
-
 resource "authentik_outpost_provider_attachment" "embedded_mesh" {
   outpost           = data.authentik_outpost.embedded.id
   protocol_provider = authentik_provider_proxy.mesh.id
@@ -336,18 +288,6 @@ resource "authentik_policy_binding" "chat_admins" {
 
 resource "authentik_policy_binding" "cloud_admins" {
   target = authentik_application.cloud.uuid
-  policy = authentik_policy_expression.admins_only.id
-  order  = 0
-}
-
-resource "authentik_policy_binding" "grafana_admins" {
-  target = authentik_application.grafana.uuid
-  policy = authentik_policy_expression.admins_only.id
-  order  = 0
-}
-
-resource "authentik_policy_binding" "hypersnap_admins" {
-  target = authentik_application.hypersnap.uuid
   policy = authentik_policy_expression.admins_only.id
   order  = 0
 }
