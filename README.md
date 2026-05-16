@@ -168,6 +168,8 @@ At the registrar, `x43.io` delegates to `x43ns1.deanpierce.net` and `x43ns2.dean
 
 The zone model keeps one `danto.x43.io` A record; app hostnames CNAME to it. This makes public IP rotation a single secret update plus DNS pod restart/resync.
 
+SSH host records share danto's public `/24` prefix: `argus.x43.io` is `.251`, `majin.x43.io` is `.252`, `nweb.x43.io` is `.253`, and `danto.x43.io` is the imported `.254` public IP.
+
 Once Argo has synced the DNS app and port `53` is open, verify DNS:
 
 ```bash

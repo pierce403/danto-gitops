@@ -24,7 +24,12 @@ spec:
           command:
             - /bin/sh
             - -c
-            - sed "s/\${DANTO_PUBLIC_IPV4}/${DANTO_PUBLIC_IPV4}/g" /config/x43.io.zone.tmpl > /zones/x43.io.zone
+            - |
+              DANTO_PUBLIC_IPV4_PREFIX="${DANTO_PUBLIC_IPV4%.*}"
+              sed \
+                -e "s/\${DANTO_PUBLIC_IPV4}/${DANTO_PUBLIC_IPV4}/g" \
+                -e "s/\${DANTO_PUBLIC_IPV4_PREFIX}/${DANTO_PUBLIC_IPV4_PREFIX}/g" \
+                /config/x43.io.zone.tmpl > /zones/x43.io.zone
           env:
             - name: DANTO_PUBLIC_IPV4
               valueFrom:

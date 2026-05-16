@@ -32,7 +32,7 @@ expect_line() {
 echo "Checking authoritative DNS at $SERVER for $DOMAIN"
 
 soa=$(query "$DOMAIN" SOA)
-expect_line "SOA" "x43ns1.deanpierce.net. admin.x43.io. 2026051201 1800 900 604800 300" "$soa"
+expect_line "SOA" "x43ns1.deanpierce.net. admin.x43.io. 2026051601 1800 900 604800 300" "$soa"
 
 ns=$(query "$DOMAIN" NS)
 expect_line "NS x43ns1" "x43ns1.deanpierce.net." "$ns"
@@ -44,6 +44,11 @@ if [ -z "$danto" ]; then
   exit 1
 fi
 echo "danto.$DOMAIN A -> $danto"
+
+danto_prefix=${danto%.*}
+expect_line "argus.$DOMAIN A" "$danto_prefix.251" "$(query "argus.$DOMAIN" A)"
+expect_line "majin.$DOMAIN A" "$danto_prefix.252" "$(query "majin.$DOMAIN" A)"
+expect_line "nweb.$DOMAIN A" "$danto_prefix.253" "$(query "nweb.$DOMAIN" A)"
 
 test_record=$(query "test.$DOMAIN" A)
 expect_line "test.$DOMAIN A" "6.6.6.6" "$test_record"

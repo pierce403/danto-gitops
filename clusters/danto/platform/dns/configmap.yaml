@@ -15,12 +15,15 @@ data:
     $ORIGIN x43.io.
     $TTL 300
 
-    @ 300 IN SOA x43ns1.deanpierce.net. admin.x43.io. 2026051201 1800 900 604800 300
+    @ 300 IN SOA x43ns1.deanpierce.net. admin.x43.io. 2026051601 1800 900 604800 300
     @ 300 IN NS x43ns1.deanpierce.net.
     @ 300 IN NS x43ns2.deanpierce.net.
 
     @ 300 IN A ${DANTO_PUBLIC_IPV4}
+    argus 300 IN A ${DANTO_PUBLIC_IPV4_PREFIX}.251
     danto 300 IN A ${DANTO_PUBLIC_IPV4}
+    majin 300 IN A ${DANTO_PUBLIC_IPV4_PREFIX}.252
+    nweb 300 IN A ${DANTO_PUBLIC_IPV4_PREFIX}.253
     test 300 IN A 6.6.6.6
 
     auth 300 IN CNAME danto.x43.io.
