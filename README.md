@@ -243,3 +243,8 @@ No raw secrets are committed. Generated bootstrap and app secrets are created au
 GitHub Actions runs kustomize/helm rendering plus kubeconform validation. Configure branch protection to require this workflow so phone merges are blocked on render failures.
 
 The `danto-smoke` workflow is manual plus hourly. It checks public DNS delegation, verifies `test.x43.io -> 6.6.6.6`, and confirms `https://argo.x43.io/` is reachable from GitHub-hosted runners. It does not use cluster, Argo, registrar, or DNS-provider credentials.
+
+## Licensing scope
+
+Original code and documentation authored for this project by Dean Pierce are licensed under the [Apache License 2.0](LICENSE).
+Third-party dependencies, assets, and quoted material retain their respective licenses and notices. This grant does not relicense third-party work.
